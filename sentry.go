@@ -3,7 +3,6 @@ package middleware
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"time"
 
@@ -82,7 +81,7 @@ func WithErrorLogger(pf Printf, serverName string) zenrpc.MiddlewareFunc {
 						"version":  version,
 						"method":   methodName,
 					})
-					sentry.CaptureException(errors.New(r.Error.Error()))
+					sentry.CaptureException(r.Error)
 				})
 
 				// remove sensitive error data from response
