@@ -6,10 +6,12 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"net/http/httputil"
 	"os"
 	"testing"
 
 	"github.com/go-pg/pg/v10"
+	"github.com/labstack/echo/v4"
 	"github.com/vmkteam/zenrpc-middleware"
 	"github.com/vmkteam/zenrpc/v2"
 	"github.com/vmkteam/zenrpc/v2/testdata"
@@ -134,4 +136,26 @@ func TestMiddlewareErrorLogger(t *testing.T) {
 	if string(resp) != out {
 		t.Errorf("Input: %s\n got %s expected %s", in, resp, out)
 	}
+}
+
+func TestMiddlewareXRequestID(t *testing.T) {
+	rpc := newArithServer(true, nil, middleware.DefaultServerName)
+
+	ts := httptest.NewServer(middleware.XRequestID(http.HandlerFunc(rpc.ServeHTTP)))
+	defer ts.Close()
+
+	in := `{"jsonrpc": "2.0", "method": "arith.divide", "params": { "a": 1, "b": 24 }, "id": 1 }`
+
+	res, err := http.Post(ts.URL, "application/json", bytes.NewBufferString(in))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	xRequestId := res.Header.Get(echo.HeaderXRequestID)
+	if xRequestId == "" {
+		t.Error("Empty X-Request-ID header response")
+	}
+
+	bb, _ := httputil.DumpResponse(res, true)
+	log.Println(string(bb))
 }
