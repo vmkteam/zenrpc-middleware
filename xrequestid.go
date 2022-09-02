@@ -28,3 +28,8 @@ func XRequestIDFromContext(ctx context.Context) string {
 	r, _ := ctx.Value(ctxXRequestIDKey).(string)
 	return r
 }
+
+// NewXRequestIDContext creates new context with X-Request-ID.
+func NewXRequestIDContext(ctx context.Context, requestId string) context.Context {
+	return context.WithValue(ctx, ctxXRequestIDKey, requestId)
+}

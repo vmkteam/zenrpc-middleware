@@ -38,10 +38,10 @@ func WithHeaders() zenrpc.MiddlewareFunc {
 	return func(h zenrpc.InvokeFunc) zenrpc.InvokeFunc {
 		return func(ctx context.Context, method string, params json.RawMessage) zenrpc.Response {
 			if req, ok := zenrpc.RequestFromContext(ctx); ok && req != nil {
-				ctx = context.WithValue(ctx, ctxUserAgentKey, cutString(req.UserAgent(), 2048))
-				ctx = context.WithValue(ctx, ctxPlatformKey, cutString(req.Header.Get("Platform"), 64))
-				ctx = context.WithValue(ctx, ctxVersionKey, cutString(req.Header.Get("Version"), 64))
-				ctx = context.WithValue(ctx, ctxXRequestIDKey, req.Header.Get(echo.HeaderXRequestID))
+				ctx = NewUserAgentContext(ctx, req.UserAgent())
+				ctx = NewPlatformContext(ctx, req.Header.Get("Platform"))
+				ctx = NewVersionContext(ctx, req.Header.Get("Version"))
+				ctx = NewXRequestIDContext(ctx, req.Header.Get(echo.HeaderXRequestID))
 			}
 			return h(ctx, method, params)
 		}
@@ -59,6 +59,11 @@ func IPFromContext(ctx context.Context) string {
 	return r
 }
 
+// NewUserAgentContext creates new context with User-Agent.
+func NewUserAgentContext(ctx context.Context, ua string) context.Context {
+	return context.WithValue(ctx, ctxUserAgentKey, cutString(ua, 2048))
+}
+
 // UserAgentFromContext returns userAgent from context.
 func UserAgentFromContext(ctx context.Context) string {
 	r, _ := ctx.Value(ctxUserAgentKey).(string)
@@ -72,10 +77,20 @@ func IsDevelFromContext(ctx context.Context) bool {
 	return false
 }
 
+// NewPlatformContext creates new context with platform.
+func NewPlatformContext(ctx context.Context, platform string) context.Context {
+	return context.WithValue(ctx, ctxPlatformKey, cutString(platform, 64))
+}
+
 // PlatformFromContext returns platform from context.
 func PlatformFromContext(ctx context.Context) string {
 	r, _ := ctx.Value(ctxPlatformKey).(string)
 	return r
+}
+
+// NewVersionContext creates new context with version.
+func NewVersionContext(ctx context.Context, version string) context.Context {
+	return context.WithValue(ctx, ctxVersionKey, cutString(version, 64))
 }
 
 // VersionFromContext returns version from context.
