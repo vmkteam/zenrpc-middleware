@@ -16,7 +16,7 @@ func WithAPILogger(pf Printf, serverName string) zenrpc.MiddlewareFunc {
 			r := h(ctx, method, params)
 
 			methodName := fullMethodName(serverName, zenrpc.NamespaceFromContext(ctx), method)
-			pf("ip=%s platform=%q version=%q method=%s duration=%v params=%q err=%q userAgent=%q",
+			pf("ip=%s platform=%q version=%q method=%s duration=%v params=%q err=%q userAgent=%q xRequestId=%q",
 				IPFromContext(ctx),
 				PlatformFromContext(ctx),
 				VersionFromContext(ctx),
@@ -25,6 +25,7 @@ func WithAPILogger(pf Printf, serverName string) zenrpc.MiddlewareFunc {
 				params,
 				r.Error,
 				UserAgentFromContext(ctx),
+				XRequestIDFromContext(ctx),
 			)
 
 			return r

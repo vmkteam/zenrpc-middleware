@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/labstack/echo/v4"
 	"github.com/vmkteam/zenrpc/v2"
 )
 
@@ -40,6 +41,7 @@ func WithHeaders() zenrpc.MiddlewareFunc {
 				ctx = context.WithValue(ctx, ctxUserAgentKey, cutString(req.UserAgent(), 2048))
 				ctx = context.WithValue(ctx, ctxPlatformKey, cutString(req.Header.Get("Platform"), 64))
 				ctx = context.WithValue(ctx, ctxVersionKey, cutString(req.Header.Get("Version"), 64))
+				ctx = context.WithValue(ctx, ctxXRequestIDKey, req.Header.Get(echo.HeaderXRequestID))
 			}
 			return h(ctx, method, params)
 		}

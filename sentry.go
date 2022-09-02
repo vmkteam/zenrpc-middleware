@@ -32,7 +32,7 @@ func WithSentry(serverName string) zenrpc.MiddlewareFunc {
 	return func(h zenrpc.InvokeFunc) zenrpc.InvokeFunc {
 		return func(ctx context.Context, method string, params json.RawMessage) zenrpc.Response {
 			if hub, ok := sentryHubFromContext(ctx); ok {
-				start, platform, version, ip := time.Now(), PlatformFromContext(ctx), VersionFromContext(ctx), IPFromContext(ctx)
+				start, platform, version, ip, xRequestID := time.Now(), PlatformFromContext(ctx), VersionFromContext(ctx), IPFromContext(ctx), XRequestIDFromContext(ctx)
 
 				methodName := fullMethodName(serverName, zenrpc.NamespaceFromContext(ctx), method)
 
@@ -42,9 +42,10 @@ func WithSentry(serverName string) zenrpc.MiddlewareFunc {
 					"ip":       ip,
 				})
 				hub.Scope().SetTags(map[string]string{
-					"platform": platform,
-					"version":  version,
-					"method":   methodName,
+					"platform":   platform,
+					"version":    version,
+					"method":     methodName,
+					"xRequestId": xRequestID,
 				})
 			}
 
@@ -58,7 +59,7 @@ func WithSentry(serverName string) zenrpc.MiddlewareFunc {
 func WithErrorLogger(pf Printf, serverName string) zenrpc.MiddlewareFunc {
 	return func(h zenrpc.InvokeFunc) zenrpc.InvokeFunc {
 		return func(ctx context.Context, method string, params json.RawMessage) zenrpc.Response {
-			start, platform, version, ip := time.Now(), PlatformFromContext(ctx), VersionFromContext(ctx), IPFromContext(ctx)
+			start, platform, version, ip, xRequestID := time.Now(), PlatformFromContext(ctx), VersionFromContext(ctx), IPFromContext(ctx), XRequestIDFromContext(ctx)
 			namespace := zenrpc.NamespaceFromContext(ctx)
 
 			r := h(ctx, method, params)
@@ -66,7 +67,7 @@ func WithErrorLogger(pf Printf, serverName string) zenrpc.MiddlewareFunc {
 				duration := time.Since(start)
 				methodName := fullMethodName(serverName, namespace, method)
 
-				pf("ip=%s platform=%q version=%q method=%s duration=%v params=%s err=%q", ip, platform, version, methodName, duration, params, r.Error)
+				pf("ip=%s platform=%q version=%q method=%s duration=%v params=%s xRequestId=%q err=%q", ip, platform, version, methodName, duration, params, xRequestID, r.Error)
 
 				sentry.WithScope(func(scope *sentry.Scope) {
 					scope.SetExtras(map[string]interface{}{
@@ -77,9 +78,10 @@ func WithErrorLogger(pf Printf, serverName string) zenrpc.MiddlewareFunc {
 						"error.code": r.Error.Code,
 					})
 					scope.SetTags(map[string]string{
-						"platform": platform,
-						"version":  version,
-						"method":   methodName,
+						"platform":   platform,
+						"version":    version,
+						"method":     methodName,
+						"xRequestId": xRequestID,
 					})
 					sentry.CaptureException(r.Error)
 				})

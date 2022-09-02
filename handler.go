@@ -11,10 +11,24 @@ import (
 func CORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Authorization2, Origin, X-Requested-With, Content-Type, Accept, Platform, Version")
+		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Authorization2, Origin, X-Requested-With, Content-Type, Accept, Platform, Version, X-Request-ID")
 		if r.Method == "OPTIONS" {
 			return
 		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+// XRequestID add X-Request-ID header if not exists
+func XRequestID(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestId := r.Header.Get(echo.HeaderXRequestID)
+		if !isValidXRequestID(requestId) {
+			requestId = generateXRequestID()
+			r.Header.Add(echo.HeaderXRequestID, requestId)
+		}
+		w.Header().Set(echo.HeaderXRequestID, requestId)
 
 		next.ServeHTTP(w, r)
 	})
@@ -28,7 +42,7 @@ func EchoHandler(next http.Handler) echo.HandlerFunc {
 			req = ctx.Request().WithContext(NewSentryHubContext(ctx.Request().Context(), hub))
 		}
 		req = req.WithContext(NewIPContext(req.Context(), ctx.RealIP()))
-		CORS(next).ServeHTTP(ctx.Response(), req)
+		CORS(XRequestID(next)).ServeHTTP(ctx.Response(), req)
 		return nil
 	}
 }
