@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -14,7 +15,8 @@ import (
 )
 
 const (
-	debugIDCtx contextKey = "debugID"
+	debugIDCtx  contextKey = "debugID"
+	sqlGroupCtx contextKey = "sqlGroup"
 
 	emptyDebugID   = 0
 	eventStartedAt = "queryStartedAt"
@@ -32,6 +34,16 @@ func debugIDFromContext(ctx context.Context) uint64 {
 	}
 
 	return emptyDebugID
+}
+
+// SetCtxSqlGroup add group to sqlGroup context and returns new context
+func SetCtxSqlGroup(ctx context.Context, group string) context.Context {
+	groups, _ := ctx.Value(sqlGroupCtx).(string)
+	if groups != "" {
+		groups += ">"
+	}
+	groups += group
+	return context.WithValue(ctx, sqlGroupCtx, groups)
 }
 
 // WithTiming adds timings in JSON-RPC 2.0 Response via `extensions` field (not in spec). Middleware is active
@@ -135,6 +147,7 @@ type sqlQueryLogger struct {
 
 type sqlQuery struct {
 	Query    string
+	Group    string
 	Duration Duration
 }
 
@@ -186,6 +199,9 @@ func (ql sqlQueryLogger) AfterQuery(ctx context.Context, event *pg.QueryEvent) e
 			}
 		}
 	}
+
+	sqlGroup, _ := ctx.Value(sqlGroupCtx).(string)
+	sq.Group = strings.Trim(sqlGroup, ">")
 
 	ql.Store(debugID, sq)
 
