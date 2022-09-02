@@ -36,8 +36,8 @@ func debugIDFromContext(ctx context.Context) uint64 {
 	return emptyDebugID
 }
 
-// SetCtxSqlGroup add group to sqlGroup context and returns new context
-func SetCtxSqlGroup(ctx context.Context, group string) context.Context {
+// NewSqlGroupContext creates new context with SQL Group for debug SQL logging.
+func NewSqlGroupContext(ctx context.Context, group string) context.Context {
 	groups, _ := ctx.Value(sqlGroupCtx).(string)
 	if groups != "" {
 		groups += ">"
