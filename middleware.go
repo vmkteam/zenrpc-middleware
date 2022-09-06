@@ -27,7 +27,7 @@ type (
 func WithDevel(isDevel bool) zenrpc.MiddlewareFunc {
 	return func(h zenrpc.InvokeFunc) zenrpc.InvokeFunc {
 		return func(ctx context.Context, method string, params json.RawMessage) zenrpc.Response {
-			ctx = context.WithValue(ctx, isDevelCtx, isDevel)
+			ctx = NewIsDevelContext(ctx, isDevel)
 			return h(ctx, method, params)
 		}
 	}
@@ -68,6 +68,11 @@ func NewUserAgentContext(ctx context.Context, ua string) context.Context {
 func UserAgentFromContext(ctx context.Context) string {
 	r, _ := ctx.Value(ctxUserAgentKey).(string)
 	return r
+}
+
+// NewIsDevelContext creates new context with isDevel flag.
+func NewIsDevelContext(ctx context.Context, isDevel bool) context.Context {
+	return context.WithValue(ctx, isDevelCtx, isDevel)
 }
 
 func IsDevelFromContext(ctx context.Context) bool {
