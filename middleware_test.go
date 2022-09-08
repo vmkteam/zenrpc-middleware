@@ -2,6 +2,7 @@ package middleware_test
 
 import (
 	"bytes"
+	"context"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -22,7 +23,7 @@ func newArithServer(isDevel bool, dbc *pg.DB, appName string) zenrpc.Server {
 	dlog := log.New(os.Stdout, "D", log.LstdFlags|log.Lshortfile)
 
 	allowDebugFn := func(param string) middleware.AllowDebugFunc {
-		return func(req *http.Request) bool {
+		return func(ctx context.Context, req *http.Request) bool {
 			return req.FormValue(param) == "true"
 		}
 	}
