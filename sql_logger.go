@@ -22,7 +22,7 @@ const (
 	eventStartedAt = "queryStartedAt"
 )
 
-type AllowDebugFunc func(context.Context, *http.Request) bool
+type AllowDebugFunc func(*http.Request) bool
 
 func DebugIDFromContext(ctx context.Context) uint64 {
 	if ctx == nil {
@@ -68,7 +68,7 @@ func WithTiming(isDevel bool, allowDebugFunc AllowDebugFunc) zenrpc.MiddlewareFu
 			if !isDevel {
 				req, _ := zenrpc.RequestFromContext(ctx)
 				reqClone := req.Clone(ctx)
-				if reqClone == nil || !allowDebugFunc(ctx, reqClone) {
+				if reqClone == nil || !allowDebugFunc(reqClone) {
 					return h(ctx, method, params)
 				}
 			}
@@ -114,11 +114,11 @@ func WithSQLLogger(db *pg.DB, isDevel bool, allowDebugFunc, allowSqlDebugFunc Al
 			if !isDevel {
 				req, _ := zenrpc.RequestFromContext(ctx)
 				reqClone := req.Clone(ctx)
-				if reqClone == nil || !allowDebugFunc(ctx, reqClone) {
+				if reqClone == nil || !allowDebugFunc(reqClone) {
 					return h(ctx, method, params)
 				}
 
-				if !allowSqlDebugFunc(ctx, reqClone) {
+				if reqClone == nil || !allowSqlDebugFunc(reqClone) {
 					logQuery = false
 				}
 			}

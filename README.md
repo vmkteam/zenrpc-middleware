@@ -73,6 +73,14 @@ sensitive error data from response. It is good to use pkg/errors for stack trace
 ip= platform="Test1" version="v1.0.0 alpha1" method=errordevel.arith.checkzenrpcerror duration=30.786µs params=[ true ] err="test"
 ```
 
+### XRequestID
+
+Middleware for adding `X-Request-ID` header to all requests and responses.
+
+```go
+	s := http.NewServer(middleware.XRequestID(http.HandlerFunc(rpc.ServeHTTP)))
+```
+
 ## Examples
 
 ### Basic usage
