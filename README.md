@@ -75,10 +75,26 @@ ip= platform="Test1" version="v1.0.0 alpha1" method=errordevel.arith.checkzenrpc
 
 ### XRequestID
 
-Middleware for adding `X-Request-ID` header to all requests and responses.
+Handler for adding `X-Request-ID` header to all requests and responses.
 
 ```go
 	s := http.NewServer(middleware.XRequestID(http.HandlerFunc(rpc.ServeHTTP)))
+```
+
+### EchoIPContext
+
+Echo middleware for adding client IP info to context for zenrpc middleware
+
+```go
+    e.Use(middleware.EchoIPContext())
+```
+
+### EchoSentryHubContext
+
+Echo middleware for adding sentry hub info to context for zenrpc middleware
+
+```go
+    e.Use(middleware.EchoSentryHubContext())
 ```
 
 ## Examples
@@ -152,4 +168,11 @@ e.Use(sentryecho.New(sentryecho.Options{
 
 // register handler
 a.echo.Any("/v1/rpc/", middleware.EchoHandler(rpc))
+
+---  OR ---
+
+e.Use(middleware.EchoIPContext()), middleware.EchoSentryHubContext())
+// register handler
+e.Any("/int/rpc/", echo.WrapHandler(XRequestID(rpc)))
+
 ```

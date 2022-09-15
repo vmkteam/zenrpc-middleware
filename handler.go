@@ -20,7 +20,7 @@ func CORS(next http.Handler) http.Handler {
 	})
 }
 
-// XRequestID add X-Request-ID header if not exists
+// XRequestID add X-Request-ID header if not exists.
 func XRequestID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestId := r.Header.Get(echo.HeaderXRequestID)
@@ -37,12 +37,42 @@ func XRequestID(next http.Handler) http.Handler {
 // EchoHandler is wrapper for Echo.
 func EchoHandler(next http.Handler) echo.HandlerFunc {
 	return func(ctx echo.Context) error {
+		ctx = applySentryHubToContext(ctx)
+		ctx = applyIpToContext(ctx)
 		req := ctx.Request()
-		if hub := sentryecho.GetHubFromContext(ctx); hub != nil {
-			req = ctx.Request().WithContext(NewSentryHubContext(ctx.Request().Context(), hub))
-		}
-		req = req.WithContext(NewIPContext(req.Context(), ctx.RealIP()))
 		CORS(XRequestID(next)).ServeHTTP(ctx.Response(), req)
 		return nil
 	}
+}
+
+// EchoSentryHubContext middleware applies sentry hub to context for zenrpc middleware.
+func EchoSentryHubContext() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			return next(applySentryHubToContext(c))
+		}
+	}
+}
+
+// EchoIPContext middleware applies client ip to context for zenrpc middleware.
+func EchoIPContext() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			return next(applyIpToContext(c))
+		}
+	}
+}
+
+func applySentryHubToContext(c echo.Context) echo.Context {
+	if hub := sentryecho.GetHubFromContext(c); hub != nil {
+		req := c.Request()
+		c.SetRequest(req.WithContext(NewSentryHubContext(req.Context(), hub)))
+	}
+	return c
+}
+
+func applyIpToContext(c echo.Context) echo.Context {
+	req := c.Request()
+	c.SetRequest(req.WithContext(NewIPContext(req.Context(), c.RealIP())))
+	return c
 }
