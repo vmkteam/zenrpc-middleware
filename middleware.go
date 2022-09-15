@@ -75,6 +75,7 @@ func NewIsDevelContext(ctx context.Context, isDevel bool) context.Context {
 	return context.WithValue(ctx, isDevelCtx, isDevel)
 }
 
+// IsDevelFromContext returns isDevel flag from context.
 func IsDevelFromContext(ctx context.Context) bool {
 	if isDevel, ok := ctx.Value(isDevelCtx).(bool); ok {
 		return isDevel

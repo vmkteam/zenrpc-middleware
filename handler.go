@@ -20,7 +20,7 @@ func CORS(next http.Handler) http.Handler {
 	})
 }
 
-// XRequestID add X-Request-ID header if not exists
+// XRequestID add X-Request-ID header if not exists.
 func XRequestID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestId := r.Header.Get(echo.HeaderXRequestID)
@@ -45,7 +45,7 @@ func EchoHandler(next http.Handler) echo.HandlerFunc {
 	}
 }
 
-// EchoSentryHubContext middleware applies sentry hub to context for zenrpc middleware
+// EchoSentryHubContext middleware applies sentry hub to context for zenrpc middleware.
 func EchoSentryHubContext() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
@@ -54,7 +54,7 @@ func EchoSentryHubContext() echo.MiddlewareFunc {
 	}
 }
 
-// EchoIPContext middleware applies client ip to context for zenrpc middleware
+// EchoIPContext middleware applies client ip to context for zenrpc middleware.
 func EchoIPContext() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
