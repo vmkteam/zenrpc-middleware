@@ -73,8 +73,8 @@ func UserAgentFromContext(ctx context.Context) string {
 }
 
 // NewNotificationContext creates new context with JSONRPC2 notification flag.
-func NewNotificationContext(ctx context.Context, value bool) context.Context {
-	return context.WithValue(ctx, ctxNotificationKey, value)
+func NewNotificationContext(ctx context.Context) context.Context {
+	return context.WithValue(ctx, ctxNotificationKey, true)
 }
 
 // NotificationFromContext returns JSONRPC2 notification flag from context.
