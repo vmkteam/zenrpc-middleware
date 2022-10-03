@@ -15,6 +15,8 @@ const (
 	ctxIPKey        contextKey = "ip"
 	ctxUserAgentKey contextKey = "userAgent"
 
+	ctxNotificationKey = "JSONRPC2-Notification"
+
 	DefaultServerName = ""
 )
 
@@ -67,6 +69,17 @@ func NewUserAgentContext(ctx context.Context, ua string) context.Context {
 // UserAgentFromContext returns userAgent from context.
 func UserAgentFromContext(ctx context.Context) string {
 	r, _ := ctx.Value(ctxUserAgentKey).(string)
+	return r
+}
+
+// NewNotificationContext creates new context with JSONRPC2 notification flag.
+func NewNotificationContext(ctx context.Context) context.Context {
+	return context.WithValue(ctx, ctxNotificationKey, true)
+}
+
+// NotificationFromContext returns JSONRPC2 notification flag from context.
+func NotificationFromContext(ctx context.Context) bool {
+	r, _ := ctx.Value(ctxNotificationKey).(bool)
 	return r
 }
 
