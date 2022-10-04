@@ -169,7 +169,7 @@ type Duration struct {
 }
 
 func (d Duration) MarshalJSON() (b []byte, err error) {
-	return []byte(fmt.Sprintf(`"%s"`, d.String())), nil
+	return []byte(fmt.Sprintf(`"%s"`, d.Round(time.Millisecond).String())), nil
 }
 
 func NewSqlQueryLogger() *sqlQueryLogger {
