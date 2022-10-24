@@ -57,8 +57,8 @@ func SqlGroupFromContext(ctx context.Context) string {
 	return r
 }
 
-// WithTiming adds timings in JSON-RPC 2.0 Response via `extensions` field (not in spec). Middleware is active
-// when `isDevel=true` or AllowDebugFunc returns `true`.
+// WithTiming adds timings in JSON-RPC 2.0 Response via `extensions` field (not in spec).
+// Middleware is active when `isDevel=true` or AllowDebugFunc returns `true` and http request is set.
 // `DurationLocal` – total method execution time in ms.
 // If `DurationRemote` or `DurationDiff` are set then `DurationLocal` excludes these values.
 func WithTiming(isDevel bool, allowDebugFunc AllowDebugFunc) zenrpc.MiddlewareFunc {
@@ -70,6 +70,7 @@ func WithTiming(isDevel bool, allowDebugFunc AllowDebugFunc) zenrpc.MiddlewareFu
 				if !ok || req == nil {
 					return h(ctx, method, params)
 				}
+
 				reqClone := req.Clone(ctx)
 				if reqClone == nil || !allowDebugFunc(reqClone) {
 					return h(ctx, method, params)
@@ -102,8 +103,8 @@ func WithTiming(isDevel bool, allowDebugFunc AllowDebugFunc) zenrpc.MiddlewareFu
 }
 
 // WithSQLLogger adds `SQL` or `DurationSQL` fields in JSON-RPC 2.0 Response `extensions` field (not in spec).
-// `DurationSQL` field is set then  `isDevel=true` or AllowDebugFunc(allowDebugFunc) returns `true`.
-// `SQL` field is set then `isDevel=true` or AllowDebugFunc(allowDebugFunc, allowSqlDebugFunc) returns `true`.
+// `DurationSQL` field is set then `isDevel=true` or AllowDebugFunc(allowDebugFunc) returns `true` and http request is set.
+// `SQL` field is set then `isDevel=true` or AllowDebugFunc(allowDebugFunc, allowSqlDebugFunc) returns `true` and http request is set.
 func WithSQLLogger(db *pg.DB, isDevel bool, allowDebugFunc, allowSqlDebugFunc AllowDebugFunc) zenrpc.MiddlewareFunc {
 	// init sql logger
 	ql := NewSqlQueryLogger()
@@ -119,6 +120,7 @@ func WithSQLLogger(db *pg.DB, isDevel bool, allowDebugFunc, allowSqlDebugFunc Al
 				if !ok || req == nil {
 					return h(ctx, method, params)
 				}
+
 				reqClone := req.Clone(ctx)
 				if reqClone == nil || !allowDebugFunc(reqClone) {
 					return h(ctx, method, params)
