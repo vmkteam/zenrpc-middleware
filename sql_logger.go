@@ -66,7 +66,10 @@ func WithTiming(isDevel bool, allowDebugFunc AllowDebugFunc) zenrpc.MiddlewareFu
 		return func(ctx context.Context, method string, params json.RawMessage) (resp zenrpc.Response) {
 			// check for debug id
 			if !isDevel {
-				req, _ := zenrpc.RequestFromContext(ctx)
+				req, ok := zenrpc.RequestFromContext(ctx)
+				if !ok || req == nil {
+					return h(ctx, method, params)
+				}
 				reqClone := req.Clone(ctx)
 				if reqClone == nil || !allowDebugFunc(reqClone) {
 					return h(ctx, method, params)
@@ -112,7 +115,10 @@ func WithSQLLogger(db *pg.DB, isDevel bool, allowDebugFunc, allowSqlDebugFunc Al
 
 			// check for debug id
 			if !isDevel {
-				req, _ := zenrpc.RequestFromContext(ctx)
+				req, ok := zenrpc.RequestFromContext(ctx)
+				if !ok || req == nil {
+					return h(ctx, method, params)
+				}
 				reqClone := req.Clone(ctx)
 				if reqClone == nil || !allowDebugFunc(reqClone) {
 					return h(ctx, method, params)
