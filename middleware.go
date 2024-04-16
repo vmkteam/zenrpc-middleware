@@ -14,6 +14,7 @@ const (
 	ctxVersionKey   contextKey = "version"
 	ctxIPKey        contextKey = "ip"
 	ctxUserAgentKey contextKey = "userAgent"
+	ctxCountryKey   contextKey = "country"
 
 	ctxNotificationKey = "JSONRPC2-Notification"
 
@@ -35,7 +36,7 @@ func WithDevel(isDevel bool) zenrpc.MiddlewareFunc {
 	}
 }
 
-// WithHeaders sets UserAgent, Platform, Version to context. UserAgent strips to 2048 chars, Platform and Version – to 64.
+// WithHeaders sets User-Agent, Platform, Version, X-Country headers to context. User-Agent strips to 2048 chars, Platform and Version – to 64, X-Country - to 16.
 func WithHeaders() zenrpc.MiddlewareFunc {
 	return func(h zenrpc.InvokeFunc) zenrpc.InvokeFunc {
 		return func(ctx context.Context, method string, params json.RawMessage) zenrpc.Response {
@@ -44,6 +45,7 @@ func WithHeaders() zenrpc.MiddlewareFunc {
 				ctx = NewPlatformContext(ctx, req.Header.Get("Platform"))
 				ctx = NewVersionContext(ctx, req.Header.Get("Version"))
 				ctx = NewXRequestIDContext(ctx, req.Header.Get(echo.HeaderXRequestID))
+				ctx = NewCountryContext(ctx, req.Header.Get("X-Country"))
 			}
 			return h(ctx, method, params)
 		}
@@ -118,6 +120,17 @@ func VersionFromContext(ctx context.Context) string {
 	return r
 }
 
+// NewCountryContext creates new context with country.
+func NewCountryContext(ctx context.Context, country string) context.Context {
+	return context.WithValue(ctx, ctxCountryKey, cutString(country, 16))
+}
+
+// CountryFromContext returns country from context.
+func CountryFromContext(ctx context.Context) string {
+	r, _ := ctx.Value(ctxCountryKey).(string)
+	return r
+}
+
 // cutString cuts string with given length.
 func cutString(s string, length int) string {
 	if len(s) > length {
@@ -126,7 +139,7 @@ func cutString(s string, length int) string {
 	return s
 }
 
-//fullMethodName returns namespace.method or serverName.namespace.method.
+// fullMethodName returns namespace.method or serverName.namespace.method.
 func fullMethodName(serverName, namespace, method string) string {
 	name := namespace + "." + method
 	if serverName != "" {

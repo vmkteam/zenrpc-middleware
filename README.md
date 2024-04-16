@@ -13,7 +13,7 @@ Sets bool flag to context for detecting development environment.
 
 ### WithHeaders
     
-Sets UserAgent, Platform, Version to context. UserAgent strips to 2048 chars, Platform and Version – to 64.
+Sets User-Agent, Platform, Version, X-Country headers to context. User-Agent strips to 2048 chars, Platform and Version – to 64, X-Country - to 16.
 
 ### WithAPILogger
 
