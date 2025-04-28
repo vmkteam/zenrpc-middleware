@@ -23,6 +23,10 @@ Logs via Printf function (e.g. log.Printf) all requests. For example
 ip= platform="" version="" method=nodevel.arith.divide duration=63.659µs params="{ \"a\": 1, \"b\": 24 }" err=<nil> userAgent="Go-http-client/1.1"
 ```
 
+### WithSLog
+
+Logs via slog.InfoContext (or similar) function all requests with custom attrs support.
+
 ### WithSentry
 
 Sets additional parameters for current Sentry scope. Extras: params, duration, ip. Tags: platform,
@@ -69,9 +73,9 @@ Adds `SQL` or `DurationSQL` fields in JSON-RPC 2.0 Response `extensions` field (
 Logs all errors (ErrorCode==500 or < 0) via Printf func and sends them to Sentry. It also removes
 sensitive error data from response. It is good to use pkg/errors for stack trace support in sentry.
 
-```text
-ip= platform="Test1" version="v1.0.0 alpha1" method=errordevel.arith.checkzenrpcerror duration=30.786µs params=[ true ] err="test"
-```
+### WithErrorSLog
+
+Same as `WithErrorLogger`, but for slog.
 
 ### XRequestID
 

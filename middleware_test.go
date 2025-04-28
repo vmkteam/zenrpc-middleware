@@ -2,8 +2,11 @@ package middleware_test
 
 import (
 	"bytes"
+	"context"
+	"io"
 	"io/ioutil"
 	"log"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
@@ -20,6 +23,7 @@ import (
 func newArithServer(isDevel bool, dbc *pg.DB, appName string) zenrpc.Server {
 	elog := log.New(os.Stderr, "E", log.LstdFlags|log.Lshortfile)
 	dlog := log.New(os.Stdout, "D", log.LstdFlags|log.Lshortfile)
+	sl := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	allowDebugFn := func(param string) middleware.AllowDebugFunc {
 		return func(req *http.Request) bool {
@@ -32,6 +36,15 @@ func newArithServer(isDevel bool, dbc *pg.DB, appName string) zenrpc.Server {
 		AllowCORS: true,
 	})
 
+	fnLogAttr := func(ctx context.Context, method string, r zenrpc.Response) []any {
+		namespace := zenrpc.NamespaceFromContext(ctx)
+		if namespace == "arith" && method == "divide" {
+			return []any{middleware.ErrSkipLog}
+		}
+
+		return []any{"apiKey", "fromCtx"}
+	}
+
 	rpc.Use(
 		middleware.WithDevel(isDevel),
 		middleware.WithHeaders(),
@@ -40,7 +53,9 @@ func newArithServer(isDevel bool, dbc *pg.DB, appName string) zenrpc.Server {
 		middleware.WithSentry(appName),
 		middleware.WithNoCancelContext(),
 		middleware.WithMetrics(appName),
+		middleware.WithErrorSLog(sl.ErrorContext, appName, fnLogAttr),
 		middleware.WithErrorLogger(elog.Printf, appName),
+		middleware.WithSLog(sl.InfoContext, appName, fnLogAttr),
 	)
 
 	if dbc != nil {
@@ -67,7 +82,7 @@ func TestMiddlewareDevel(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	resp, err := ioutil.ReadAll(res.Body)
+	resp, err := io.ReadAll(res.Body)
 	res.Body.Close()
 	if err != nil {
 		log.Fatal(err)
@@ -139,7 +154,7 @@ func TestMiddlewareErrorLogger(t *testing.T) {
 }
 
 func TestMiddlewareXRequestID(t *testing.T) {
-	rpc := newArithServer(true, nil, middleware.DefaultServerName)
+	rpc := newArithServer(true, nil, "xrequestid")
 
 	ts := httptest.NewServer(middleware.XRequestID(http.HandlerFunc(rpc.ServeHTTP)))
 	defer ts.Close()

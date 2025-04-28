@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 
@@ -68,6 +69,70 @@ func WithErrorLogger(pf Printf, serverName string) zenrpc.MiddlewareFunc {
 				methodName := fullMethodName(serverName, namespace, method)
 
 				pf("ip=%s platform=%q version=%q method=%s duration=%v params=%s xRequestId=%q err=%q", ip, platform, version, methodName, duration, params, xRequestID, r.Error)
+
+				sentry.WithScope(func(scope *sentry.Scope) {
+					scope.SetExtras(map[string]interface{}{
+						"params":     params,
+						"duration":   duration.String(),
+						"ip":         ip,
+						"error.data": r.Error.Data,
+						"error.code": r.Error.Code,
+					})
+					scope.SetTags(map[string]string{
+						"platform":   platform,
+						"version":    version,
+						"method":     methodName,
+						"xRequestId": xRequestID,
+					})
+					sentry.CaptureException(r.Error)
+				})
+
+				// remove sensitive error data from response
+				r.Error.Err = nil
+				r.Error.Message = "Internal error"
+			}
+
+			return r
+		}
+	}
+}
+
+// WithErrorSLog logs all errors (ErrorCode==500 or < 0) via [slog.ErrorContext] func and sends them to Sentry. It also removes
+// sensitive error data from response. It is good to use pkg/errors for stack trace support in sentry.
+func WithErrorSLog(pf Print, serverName string, fn LogAttrs) zenrpc.MiddlewareFunc {
+	return func(h zenrpc.InvokeFunc) zenrpc.InvokeFunc {
+		return func(ctx context.Context, method string, params json.RawMessage) zenrpc.Response {
+			start, platform, version, ip, xRequestID := time.Now(), PlatformFromContext(ctx), VersionFromContext(ctx), IPFromContext(ctx), XRequestIDFromContext(ctx)
+			namespace := zenrpc.NamespaceFromContext(ctx)
+
+			r := h(ctx, method, params)
+			// get additional args, check for ErrSkipLog
+			var args []any
+			if fn != nil {
+				args = fn(ctx, method, r)
+				if len(args) == 1 && errors.Is(ErrSkipLog, args[0].(error)) {
+					return r
+				}
+			}
+
+			if r.Error != nil && (r.Error.Code == http.StatusInternalServerError || r.Error.Code < 0) {
+				duration := time.Since(start)
+				methodName := fullMethodName(serverName, namespace, method)
+
+				pf(ctx, "rpc error",
+					append([]any{
+						"ip", IPFromContext(ctx),
+						"platform", PlatformFromContext(ctx),
+						"version", VersionFromContext(ctx),
+						"method", methodName,
+						"duration", time.Since(start),
+						"params", params,
+						"err", r.Error,
+						"userAgent", UserAgentFromContext(ctx),
+						"country", CountryFromContext(ctx),
+						"xRequestId", XRequestIDFromContext(ctx),
+					}, args...)...,
+				)
 
 				sentry.WithScope(func(scope *sentry.Scope) {
 					scope.SetExtras(map[string]interface{}{

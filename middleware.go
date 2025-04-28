@@ -24,6 +24,8 @@ const (
 type (
 	contextKey string
 	Printf     func(format string, v ...interface{})
+	Print      func(ctx context.Context, msg string, args ...any)
+	LogAttrs   func(ctx context.Context, method string, r zenrpc.Response) []any
 )
 
 // WithDevel sets bool flag to context for detecting development environment.
@@ -32,6 +34,15 @@ func WithDevel(isDevel bool) zenrpc.MiddlewareFunc {
 		return func(ctx context.Context, method string, params json.RawMessage) zenrpc.Response {
 			ctx = NewIsDevelContext(ctx, isDevel)
 			return h(ctx, method, params)
+		}
+	}
+}
+
+// WithNoCancelContext ignores Cancel func from context. This is useful for passing context to `go-pg`.
+func WithNoCancelContext() zenrpc.MiddlewareFunc {
+	return func(h zenrpc.InvokeFunc) zenrpc.InvokeFunc {
+		return func(ctx context.Context, method string, params json.RawMessage) zenrpc.Response {
+			return h(context.WithoutCancel(ctx), method, params)
 		}
 	}
 }
