@@ -396,3 +396,16 @@ linters:
             - gosec
             - noctx
             - wrapcheck
+formatters:
+  enable:
+    - gci
+  settings:
+    gci:
+      sections:
+        - standard
+        - localmodule
+        - default
+      no-inline-comments: true
+      no-prefix-comments: true
+      custom-order: true
+      no-lex-order: true

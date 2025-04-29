@@ -13,9 +13,10 @@ import (
 	"os"
 	"testing"
 
+	"github.com/vmkteam/zenrpc-middleware"
+
 	"github.com/go-pg/pg/v10"
 	"github.com/labstack/echo/v4"
-	"github.com/vmkteam/zenrpc-middleware"
 	"github.com/vmkteam/zenrpc/v2"
 	"github.com/vmkteam/zenrpc/v2/testdata"
 )
