@@ -1,6 +1,8 @@
 # zenrpc-middleware: Middlewares for vmkteam/zenrpc
 
+[![Linter Status](https://github.com/vmkteam/zenrpc-middleware/actions/workflows/golangci-lint.yml/badge.svg?branch=master)](https://github.com/vmkteam/zenrpc-middleware/actions)
 [![Go Report Card](https://goreportcard.com/badge/github.com/vmkteam/zenrpc-middleware)](https://goreportcard.com/report/github.com/vmkteam/zenrpc-middleware) [![Go Reference](https://pkg.go.dev/badge/github.com/vmkteam/zenrpc-middleware.svg)](https://pkg.go.dev/github.com/vmkteam/zenrpc-middleware)
+[![Go Reference](https://pkg.go.dev/badge/github.com/vmkteam/zenrpc-middleware.svg)](https://pkg.go.dev/github.com/vmkteam/zenrpc-middleware)
 
 `zenrpc-middleware` is a set of common middlewares for [zenrpc](https://github.com/vmkteam/zenrpc) implementing logging,
 metrics and error tracking.
