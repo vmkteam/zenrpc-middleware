@@ -12,6 +12,7 @@ const (
 	isDevelCtx      contextKey = "isDevel"
 	ctxPlatformKey  contextKey = "platform"
 	ctxVersionKey   contextKey = "version"
+	ctxMethodKey    contextKey = "method"
 	ctxIPKey        contextKey = "ip"
 	ctxUserAgentKey contextKey = "userAgent"
 	ctxCountryKey   contextKey = "country"
@@ -25,7 +26,7 @@ type (
 	contextKey string
 	Printf     func(format string, v ...interface{})
 	Print      func(ctx context.Context, msg string, args ...any)
-	LogAttrs   func(ctx context.Context, method string, r zenrpc.Response) []any
+	LogAttrs   func(ctx context.Context, r zenrpc.Response) []any
 )
 
 // WithDevel sets bool flag to context for detecting development environment.
@@ -57,6 +58,7 @@ func WithHeaders() zenrpc.MiddlewareFunc {
 				ctx = NewVersionContext(ctx, req.Header.Get("Version"))
 				ctx = NewXRequestIDContext(ctx, req.Header.Get(echo.HeaderXRequestID))
 				ctx = NewCountryContext(ctx, req.Header.Get("X-Country"))
+				ctx = NewMethodContext(ctx, method)
 			}
 			return h(ctx, method, params)
 		}
@@ -139,6 +141,17 @@ func NewCountryContext(ctx context.Context, country string) context.Context {
 // CountryFromContext returns country from context.
 func CountryFromContext(ctx context.Context) string {
 	r, _ := ctx.Value(ctxCountryKey).(string)
+	return r
+}
+
+// NewMethodContext creates new context with Method.
+func NewMethodContext(ctx context.Context, Method string) context.Context {
+	return context.WithValue(ctx, ctxMethodKey, cutString(Method, 16))
+}
+
+// MethodFromContext returns Method from context.
+func MethodFromContext(ctx context.Context) string {
+	r, _ := ctx.Value(ctxMethodKey).(string)
 	return r
 }
 

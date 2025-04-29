@@ -47,7 +47,7 @@ func WithSLog(pf Print, serverName string, fn LogAttrs) zenrpc.MiddlewareFunc {
 			// get additional args, check for ErrSkipLog
 			var args []any
 			if fn != nil {
-				args = fn(ctx, method, r)
+				args = fn(ctx, r)
 				if len(args) == 1 && errors.Is(ErrSkipLog, args[0].(error)) {
 					return r
 				}

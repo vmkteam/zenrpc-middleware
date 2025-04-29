@@ -102,20 +102,21 @@ func WithErrorLogger(pf Printf, serverName string) zenrpc.MiddlewareFunc {
 func WithErrorSLog(pf Print, serverName string, fn LogAttrs) zenrpc.MiddlewareFunc {
 	return func(h zenrpc.InvokeFunc) zenrpc.InvokeFunc {
 		return func(ctx context.Context, method string, params json.RawMessage) zenrpc.Response {
-			start, platform, version, ip, xRequestID := time.Now(), PlatformFromContext(ctx), VersionFromContext(ctx), IPFromContext(ctx), XRequestIDFromContext(ctx)
-			namespace := zenrpc.NamespaceFromContext(ctx)
-
 			r := h(ctx, method, params)
+
 			// get additional args, check for ErrSkipLog
 			var args []any
 			if fn != nil {
-				args = fn(ctx, method, r)
+				args = fn(ctx, r)
 				if len(args) == 1 && errors.Is(ErrSkipLog, args[0].(error)) {
 					return r
 				}
 			}
 
 			if r.Error != nil && (r.Error.Code == http.StatusInternalServerError || r.Error.Code < 0) {
+				start, platform, version, ip, xRequestID := time.Now(), PlatformFromContext(ctx), VersionFromContext(ctx), IPFromContext(ctx), XRequestIDFromContext(ctx)
+				namespace := zenrpc.NamespaceFromContext(ctx)
+
 				duration := time.Since(start)
 				methodName := fullMethodName(serverName, namespace, method)
 

@@ -36,8 +36,8 @@ func newArithServer(isDevel bool, dbc *pg.DB, appName string) zenrpc.Server {
 		AllowCORS: true,
 	})
 
-	fnLogAttr := func(ctx context.Context, method string, r zenrpc.Response) []any {
-		namespace := zenrpc.NamespaceFromContext(ctx)
+	fnLogAttr := func(ctx context.Context, r zenrpc.Response) []any {
+		namespace, method := zenrpc.NamespaceFromContext(ctx), middleware.MethodFromContext(ctx)
 		if namespace == "arith" && method == "divide" {
 			return []any{middleware.ErrSkipLog}
 		}
