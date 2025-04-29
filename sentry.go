@@ -122,20 +122,16 @@ func WithErrorSLog(pf Print, serverName string, fn LogAttrs) zenrpc.MiddlewareFu
 				duration := time.Since(start)
 				methodName := fullMethodName(serverName, namespace, method)
 
-				pf(ctx, "rpc error",
-					append([]any{
-						"ip", IPFromContext(ctx),
-						"platform", PlatformFromContext(ctx),
-						"version", VersionFromContext(ctx),
-						"method", methodName,
-						"duration", time.Since(start),
-						"params", params,
-						"err", r.Error,
-						"userAgent", UserAgentFromContext(ctx),
-						"country", CountryFromContext(ctx),
-						"xRequestId", XRequestIDFromContext(ctx),
-					}, args...)...,
-				)
+				logArgs := append(additionalArgs(ctx), []any{
+					"method", fullMethodName(serverName, zenrpc.NamespaceFromContext(ctx), method),
+					"duration", time.Since(start),
+					"params", params,
+					"err", r.Error,
+					"userAgent", UserAgentFromContext(ctx),
+					"xRequestId", XRequestIDFromContext(ctx),
+				}...)
+
+				pf(ctx, "rpc error", append(logArgs, args...)...)
 
 				sentry.WithScope(func(scope *sentry.Scope) {
 					scope.SetExtras(map[string]interface{}{

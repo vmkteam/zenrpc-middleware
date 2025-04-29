@@ -20,7 +20,7 @@ func WithAPILogger(pf Printf, serverName string) zenrpc.MiddlewareFunc {
 			r := h(ctx, method, params)
 
 			methodName := fullMethodName(serverName, zenrpc.NamespaceFromContext(ctx), method)
-			pf("ip=%s platform=%q version=%q method=%s duration=%v params=%q err=%q userAgent=%q country=%q xRequestId=%q",
+			pf("ip=%s platform=%q version=%q method=%s duration=%v params=%q err=%q userAgent=%q xRequestId=%q",
 				IPFromContext(ctx),
 				PlatformFromContext(ctx),
 				VersionFromContext(ctx),
@@ -29,7 +29,6 @@ func WithAPILogger(pf Printf, serverName string) zenrpc.MiddlewareFunc {
 				params,
 				r.Error,
 				UserAgentFromContext(ctx),
-				CountryFromContext(ctx),
 				XRequestIDFromContext(ctx),
 			)
 
@@ -56,23 +55,35 @@ func WithSLog(pf Print, serverName string, fn LogAttrs) zenrpc.MiddlewareFunc {
 				}
 			}
 
-			methodName := fullMethodName(serverName, zenrpc.NamespaceFromContext(ctx), method)
-			pf(ctx, "rpc",
-				append([]any{
-					"ip", IPFromContext(ctx),
-					"platform", PlatformFromContext(ctx),
-					"version", VersionFromContext(ctx),
-					"method", methodName,
-					"duration", time.Since(start),
-					"params", params,
-					"err", r.Error,
-					"userAgent", UserAgentFromContext(ctx),
-					"country", CountryFromContext(ctx),
-					"xRequestId", XRequestIDFromContext(ctx),
-				}, args...)...,
-			)
+			logArgs := append(additionalArgs(ctx), []any{
+				"method", fullMethodName(serverName, zenrpc.NamespaceFromContext(ctx), method),
+				"duration", time.Since(start),
+				"params", params,
+				"err", r.Error,
+				"userAgent", UserAgentFromContext(ctx),
+				"xRequestId", XRequestIDFromContext(ctx),
+			}...)
 
+			pf(ctx, "rpc", append(logArgs, args...)...)
 			return r
 		}
 	}
+}
+
+func additionalArgs(ctx context.Context) []any {
+	r := make([]any, 0, 4)
+	r = append(r, "ip", IPFromContext(ctx))
+	if v := CountryFromContext(ctx); v != "" {
+		r = append(r, "country", v)
+	}
+
+	if v := PlatformFromContext(ctx); v != "" {
+		r = append(r, "platform", v)
+	}
+
+	if v := VersionFromContext(ctx); v != "" {
+		r = append(r, "version", v)
+	}
+
+	return r
 }
