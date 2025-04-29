@@ -108,8 +108,10 @@ func WithErrorSLog(pf Print, serverName string, fn LogAttrs) zenrpc.MiddlewareFu
 			var args []any
 			if fn != nil {
 				args = fn(ctx, r)
-				if len(args) == 1 && errors.Is(ErrSkipLog, args[0].(error)) {
-					return r
+				if len(args) == 1 {
+					if e, ok := args[0].(error); ok && errors.Is(e, ErrSkipLog) {
+						return r
+					}
 				}
 			}
 

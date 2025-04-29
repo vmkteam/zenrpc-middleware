@@ -41,8 +41,8 @@ func NewDebugIDContext(ctx context.Context, debugID uint64) context.Context {
 	return context.WithValue(ctx, debugIDCtx, debugID)
 }
 
-// NewSqlGroupContext creates new context with SQL Group for debug SQL logging.
-func NewSqlGroupContext(ctx context.Context, group string) context.Context {
+// NewSQLGroupContext creates new context with SQL Group for debug SQL logging.
+func NewSQLGroupContext(ctx context.Context, group string) context.Context {
 	groups, _ := ctx.Value(sqlGroupCtx).(string)
 	if groups != "" {
 		groups += ">"
@@ -51,8 +51,8 @@ func NewSqlGroupContext(ctx context.Context, group string) context.Context {
 	return context.WithValue(ctx, sqlGroupCtx, groups)
 }
 
-// SqlGroupFromContext returns sql group from context.
-func SqlGroupFromContext(ctx context.Context) string {
+// SQLGroupFromContext returns sql group from context.
+func SQLGroupFromContext(ctx context.Context) string {
 	r, _ := ctx.Value(sqlGroupCtx).(string)
 	return r
 }
@@ -63,7 +63,7 @@ func SqlGroupFromContext(ctx context.Context) string {
 // If `DurationRemote` or `DurationDiff` are set then `DurationLocal` excludes these values.
 func WithTiming(isDevel bool, allowDebugFunc AllowDebugFunc) zenrpc.MiddlewareFunc {
 	return func(h zenrpc.InvokeFunc) zenrpc.InvokeFunc {
-		return func(ctx context.Context, method string, params json.RawMessage) (resp zenrpc.Response) {
+		return func(ctx context.Context, method string, params json.RawMessage) zenrpc.Response {
 			// check for debug id
 			if !isDevel {
 				req, ok := zenrpc.RequestFromContext(ctx)
@@ -79,17 +79,17 @@ func WithTiming(isDevel bool, allowDebugFunc AllowDebugFunc) zenrpc.MiddlewareFu
 
 			now := time.Now()
 
-			resp = h(ctx, method, params)
+			resp := h(ctx, method, params)
 			if resp.Extensions == nil {
 				resp.Extensions = make(map[string]interface{})
 			}
 
-			total := int64(time.Since(now) / 1e6) //.Milliseconds() 1.13
+			total := int64(time.Since(now) / 1e6) // .Milliseconds() 1.13
 			if remote, ok := resp.Extensions["DurationRemote"]; ok {
-				total -= remote.(int64)
+				total -= remote.(int64) //nolint:errcheck // must be int64
 			}
 			if diff, ok := resp.Extensions["DurationDiff"]; ok {
-				total -= diff.(int64)
+				total -= diff.(int64) //nolint:errcheck // must be int64
 			}
 
 			// detect remote only duration
@@ -104,14 +104,14 @@ func WithTiming(isDevel bool, allowDebugFunc AllowDebugFunc) zenrpc.MiddlewareFu
 
 // WithSQLLogger adds `SQL` or `DurationSQL` fields in JSON-RPC 2.0 Response `extensions` field (not in spec).
 // `DurationSQL` field is set then `isDevel=true` or AllowDebugFunc(allowDebugFunc) returns `true` and http request is set.
-// `SQL` field is set then `isDevel=true` or AllowDebugFunc(allowDebugFunc, allowSqlDebugFunc) returns `true` and http request is set.
-func WithSQLLogger(db *pg.DB, isDevel bool, allowDebugFunc, allowSqlDebugFunc AllowDebugFunc) zenrpc.MiddlewareFunc {
+// `SQL` field is set then `isDevel=true` or AllowDebugFunc(allowDebugFunc, allowSQLDebugFunc) returns `true` and http request is set.
+func WithSQLLogger(db *pg.DB, isDevel bool, allowDebugFunc, allowSQLDebugFunc AllowDebugFunc) zenrpc.MiddlewareFunc {
 	// init sql logger
-	ql := NewSqlQueryLogger()
+	ql := NewSQLQueryLogger()
 	db.AddQueryHook(ql)
 
 	return func(h zenrpc.InvokeFunc) zenrpc.InvokeFunc {
-		return func(ctx context.Context, method string, params json.RawMessage) (resp zenrpc.Response) {
+		return func(ctx context.Context, method string, params json.RawMessage) zenrpc.Response {
 			logQuery := true
 
 			// check for debug id
@@ -126,7 +126,7 @@ func WithSQLLogger(db *pg.DB, isDevel bool, allowDebugFunc, allowSqlDebugFunc Al
 					return h(ctx, method, params)
 				}
 
-				if reqClone == nil || !allowSqlDebugFunc(reqClone) {
+				if !allowSQLDebugFunc(reqClone) {
 					logQuery = false
 				}
 			}
@@ -135,7 +135,7 @@ func WithSQLLogger(db *pg.DB, isDevel bool, allowDebugFunc, allowSqlDebugFunc Al
 			ctx = NewDebugIDContext(ctx, debugID)
 			ql.Push(debugID)
 
-			resp = h(ctx, method, params)
+			resp := h(ctx, method, params)
 			if resp.Extensions == nil {
 				resp.Extensions = make(map[string]interface{})
 			}
@@ -176,18 +176,18 @@ type Duration struct {
 	time.Duration
 }
 
-func (d Duration) MarshalJSON() (b []byte, err error) {
+func (d Duration) MarshalJSON() ([]byte, error) {
 	return []byte(fmt.Sprintf(`"%s"`, d.Round(time.Millisecond).String())), nil
 }
 
-func NewSqlQueryLogger() *sqlQueryLogger {
+func NewSQLQueryLogger() *sqlQueryLogger {
 	return &sqlQueryLogger{
 		data:   make(map[uint64][]sqlQuery),
 		dataMu: &sync.Mutex{},
 	}
 }
 
-func (ql sqlQueryLogger) BeforeQuery(ctx context.Context, event *pg.QueryEvent) (context.Context, error) {
+func (ql *sqlQueryLogger) BeforeQuery(ctx context.Context, event *pg.QueryEvent) (context.Context, error) {
 	if event.Stash == nil {
 		event.Stash = make(map[interface{}]interface{})
 	}
@@ -199,7 +199,7 @@ func (ql sqlQueryLogger) BeforeQuery(ctx context.Context, event *pg.QueryEvent) 
 	return ctx, nil
 }
 
-func (ql sqlQueryLogger) AfterQuery(ctx context.Context, event *pg.QueryEvent) error {
+func (ql *sqlQueryLogger) AfterQuery(ctx context.Context, event *pg.QueryEvent) error {
 	debugID := DebugIDFromContext(ctx)
 	if debugID == emptyDebugID {
 		return nil
@@ -208,20 +208,20 @@ func (ql sqlQueryLogger) AfterQuery(ctx context.Context, event *pg.QueryEvent) e
 	// get query
 	query, err := event.FormattedQuery()
 	if err != nil {
-		return fmt.Errorf("formatted query err=%s", err)
+		return fmt.Errorf("formatted query failed: %w", err)
 	}
 	sq := sqlQuery{Query: string(query)}
 
 	// calculate duration
 	if event.Stash != nil {
 		if v, ok := event.Stash[eventStartedAt]; ok {
-			if startAt, ok := v.(time.Time); ok {
+			if startAt, k := v.(time.Time); k {
 				sq.Duration = Duration{Duration: time.Since(startAt)}
 			}
 		}
 	}
 
-	sq.Group = strings.Trim(SqlGroupFromContext(ctx), ">")
+	sq.Group = strings.Trim(SQLGroupFromContext(ctx), ">")
 
 	ql.Store(debugID, sq)
 
@@ -229,15 +229,15 @@ func (ql sqlQueryLogger) AfterQuery(ctx context.Context, event *pg.QueryEvent) e
 }
 
 // Push is a function that init capturing session for debug ID.
-func (ql sqlQueryLogger) Push(debugID uint64) {
+func (ql *sqlQueryLogger) Push(debugID uint64) {
 	ql.dataMu.Lock()
 	defer ql.dataMu.Unlock()
 
 	ql.data[debugID] = []sqlQuery{}
 }
 
-// Store saves sql query for debug ID
-func (ql sqlQueryLogger) Store(debugID uint64, sq sqlQuery) {
+// Store saves sql query for debug ID.
+func (ql *sqlQueryLogger) Store(debugID uint64, sq sqlQuery) {
 	ql.dataMu.Lock()
 	defer ql.dataMu.Unlock()
 
@@ -250,7 +250,7 @@ func (ql sqlQueryLogger) Store(debugID uint64, sq sqlQuery) {
 }
 
 // Pop returns all sql queries for debugID and removes from store.
-func (ql sqlQueryLogger) Pop(debugID uint64) []sqlQuery {
+func (ql *sqlQueryLogger) Pop(debugID uint64) []sqlQuery {
 	ql.dataMu.Lock()
 	defer ql.dataMu.Unlock()
 

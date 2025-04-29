@@ -9,6 +9,7 @@ import (
 	"github.com/vmkteam/zenrpc/v2"
 )
 
+// ErrSkipLog is a special error for LogAttrs func. Log lines can be skipped.
 var ErrSkipLog = errors.New("skip log")
 
 // WithAPILogger logs via Printf function (e.g. log.Printf) all requests.
@@ -48,8 +49,10 @@ func WithSLog(pf Print, serverName string, fn LogAttrs) zenrpc.MiddlewareFunc {
 			var args []any
 			if fn != nil {
 				args = fn(ctx, r)
-				if len(args) == 1 && errors.Is(ErrSkipLog, args[0].(error)) {
-					return r
+				if len(args) == 1 {
+					if e, ok := args[0].(error); ok && errors.Is(e, ErrSkipLog) {
+						return r
+					}
 				}
 			}
 

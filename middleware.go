@@ -19,7 +19,12 @@ const (
 
 	ctxNotificationKey = "JSONRPC2-Notification"
 
+	// DefaultServerName is a global default name, mostly used for metrics.
 	DefaultServerName = ""
+
+	maxUserAgentLength = 2048
+	maxVersionLength   = 64
+	maxCountryLength   = 16
 )
 
 type (
@@ -78,7 +83,7 @@ func IPFromContext(ctx context.Context) string {
 
 // NewUserAgentContext creates new context with User-Agent.
 func NewUserAgentContext(ctx context.Context, ua string) context.Context {
-	return context.WithValue(ctx, ctxUserAgentKey, cutString(ua, 2048))
+	return context.WithValue(ctx, ctxUserAgentKey, cutString(ua, maxUserAgentLength))
 }
 
 // UserAgentFromContext returns userAgent from context.
@@ -89,6 +94,7 @@ func UserAgentFromContext(ctx context.Context) string {
 
 // NewNotificationContext creates new context with JSONRPC2 notification flag.
 func NewNotificationContext(ctx context.Context) context.Context {
+	//nolint:staticcheck // must be global
 	return context.WithValue(ctx, ctxNotificationKey, true)
 }
 
@@ -124,7 +130,7 @@ func PlatformFromContext(ctx context.Context) string {
 
 // NewVersionContext creates new context with version.
 func NewVersionContext(ctx context.Context, version string) context.Context {
-	return context.WithValue(ctx, ctxVersionKey, cutString(version, 64))
+	return context.WithValue(ctx, ctxVersionKey, cutString(version, maxVersionLength))
 }
 
 // VersionFromContext returns version from context.
@@ -135,7 +141,7 @@ func VersionFromContext(ctx context.Context) string {
 
 // NewCountryContext creates new context with country.
 func NewCountryContext(ctx context.Context, country string) context.Context {
-	return context.WithValue(ctx, ctxCountryKey, cutString(country, 16))
+	return context.WithValue(ctx, ctxCountryKey, cutString(country, maxCountryLength))
 }
 
 // CountryFromContext returns country from context.
@@ -145,8 +151,8 @@ func CountryFromContext(ctx context.Context) string {
 }
 
 // NewMethodContext creates new context with Method.
-func NewMethodContext(ctx context.Context, Method string) context.Context {
-	return context.WithValue(ctx, ctxMethodKey, cutString(Method, 16))
+func NewMethodContext(ctx context.Context, method string) context.Context {
+	return context.WithValue(ctx, ctxMethodKey, method)
 }
 
 // MethodFromContext returns Method from context.

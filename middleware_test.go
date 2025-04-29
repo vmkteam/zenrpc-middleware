@@ -1,10 +1,10 @@
+//nolint:unparam,noctx,goconst // tests
 package middleware_test
 
 import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"log"
 	"log/slog"
 	"net/http"
@@ -79,13 +79,13 @@ func TestMiddlewareDevel(t *testing.T) {
 
 	res, err := http.Post(ts.URL, "application/json", bytes.NewBufferString(in))
 	if err != nil {
-		log.Fatal(err)
+		t.Error(err)
 	}
 
 	resp, err := io.ReadAll(res.Body)
-	res.Body.Close()
+	_ = res.Body.Close()
 	if err != nil {
-		log.Fatal(err)
+		t.Error(err)
 	}
 
 	if string(resp) != out {
@@ -104,13 +104,13 @@ func TestMiddlewareNoDevel(t *testing.T) {
 
 	res, err := http.Post(ts.URL, "application/json", bytes.NewBufferString(in))
 	if err != nil {
-		log.Fatal(err)
+		t.Error(err)
 	}
 
-	resp, err := ioutil.ReadAll(res.Body)
-	res.Body.Close()
+	resp, err := io.ReadAll(res.Body)
+	_ = res.Body.Close()
 	if err != nil {
-		log.Fatal(err)
+		t.Error(err)
 	}
 
 	if string(resp) != out {
@@ -127,7 +127,7 @@ func TestMiddlewareErrorLogger(t *testing.T) {
 	in := `{"jsonrpc": "2.0", "method": "arith.checkzenrpcerror", "id": 0, "params": [ true ] }`
 	out := `{"jsonrpc":"2.0","id":0,"error":{"code":500,"message":"Internal error"}}`
 
-	req, err := http.NewRequest(http.MethodPost, ts.URL, bytes.NewBufferString(in))
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, ts.URL, bytes.NewBufferString(in))
 	if err != nil {
 		t.Errorf("create request failed: %v", err)
 	}
@@ -139,13 +139,13 @@ func TestMiddlewareErrorLogger(t *testing.T) {
 	c := http.Client{}
 	res, err := c.Do(req)
 	if err != nil {
-		log.Fatal(err)
+		t.Error(err)
 	}
 
-	resp, err := ioutil.ReadAll(res.Body)
-	res.Body.Close()
+	resp, err := io.ReadAll(res.Body)
+	_ = res.Body.Close()
 	if err != nil {
-		log.Fatal(err)
+		t.Error(err)
 	}
 
 	if string(resp) != out {
@@ -163,11 +163,12 @@ func TestMiddlewareXRequestID(t *testing.T) {
 
 	res, err := http.Post(ts.URL, "application/json", bytes.NewBufferString(in))
 	if err != nil {
-		log.Fatal(err)
+		t.Error(err)
 	}
+	_ = res.Body.Close()
 
-	xRequestId := res.Header.Get(echo.HeaderXRequestID)
-	if xRequestId == "" {
+	xRequestID := res.Header.Get(echo.HeaderXRequestID)
+	if xRequestID == "" {
 		t.Error("Empty X-Request-ID header response")
 	}
 
