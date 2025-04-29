@@ -1,4 +1,4 @@
-//nolint:unparam,noctx,goconst // tests
+//nolint:unparam // tests
 package middleware_test
 
 import (
