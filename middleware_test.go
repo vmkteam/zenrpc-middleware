@@ -1,18 +1,22 @@
+//nolint:unparam // tests
 package middleware_test
 
 import (
 	"bytes"
-	"io/ioutil"
+	"context"
+	"io"
 	"log"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
 	"os"
 	"testing"
 
+	"github.com/vmkteam/zenrpc-middleware"
+
 	"github.com/go-pg/pg/v10"
 	"github.com/labstack/echo/v4"
-	"github.com/vmkteam/zenrpc-middleware"
 	"github.com/vmkteam/zenrpc/v2"
 	"github.com/vmkteam/zenrpc/v2/testdata"
 )
@@ -20,6 +24,7 @@ import (
 func newArithServer(isDevel bool, dbc *pg.DB, appName string) zenrpc.Server {
 	elog := log.New(os.Stderr, "E", log.LstdFlags|log.Lshortfile)
 	dlog := log.New(os.Stdout, "D", log.LstdFlags|log.Lshortfile)
+	sl := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	allowDebugFn := func(param string) middleware.AllowDebugFunc {
 		return func(req *http.Request) bool {
@@ -32,6 +37,15 @@ func newArithServer(isDevel bool, dbc *pg.DB, appName string) zenrpc.Server {
 		AllowCORS: true,
 	})
 
+	fnLogAttr := func(ctx context.Context, r zenrpc.Response) []any {
+		namespace, method := zenrpc.NamespaceFromContext(ctx), middleware.MethodFromContext(ctx)
+		if namespace == "arith" && method == "divide" {
+			return []any{middleware.ErrSkipLog}
+		}
+
+		return []any{"apiKey", "fromCtx"}
+	}
+
 	rpc.Use(
 		middleware.WithDevel(isDevel),
 		middleware.WithHeaders(),
@@ -40,7 +54,9 @@ func newArithServer(isDevel bool, dbc *pg.DB, appName string) zenrpc.Server {
 		middleware.WithSentry(appName),
 		middleware.WithNoCancelContext(),
 		middleware.WithMetrics(appName),
+		middleware.WithErrorSLog(sl.ErrorContext, appName, fnLogAttr),
 		middleware.WithErrorLogger(elog.Printf, appName),
+		middleware.WithSLog(sl.InfoContext, appName, fnLogAttr),
 	)
 
 	if dbc != nil {
@@ -64,13 +80,13 @@ func TestMiddlewareDevel(t *testing.T) {
 
 	res, err := http.Post(ts.URL, "application/json", bytes.NewBufferString(in))
 	if err != nil {
-		log.Fatal(err)
+		t.Error(err)
 	}
 
-	resp, err := ioutil.ReadAll(res.Body)
-	res.Body.Close()
+	resp, err := io.ReadAll(res.Body)
+	_ = res.Body.Close()
 	if err != nil {
-		log.Fatal(err)
+		t.Error(err)
 	}
 
 	if string(resp) != out {
@@ -89,13 +105,13 @@ func TestMiddlewareNoDevel(t *testing.T) {
 
 	res, err := http.Post(ts.URL, "application/json", bytes.NewBufferString(in))
 	if err != nil {
-		log.Fatal(err)
+		t.Error(err)
 	}
 
-	resp, err := ioutil.ReadAll(res.Body)
-	res.Body.Close()
+	resp, err := io.ReadAll(res.Body)
+	_ = res.Body.Close()
 	if err != nil {
-		log.Fatal(err)
+		t.Error(err)
 	}
 
 	if string(resp) != out {
@@ -112,7 +128,7 @@ func TestMiddlewareErrorLogger(t *testing.T) {
 	in := `{"jsonrpc": "2.0", "method": "arith.checkzenrpcerror", "id": 0, "params": [ true ] }`
 	out := `{"jsonrpc":"2.0","id":0,"error":{"code":500,"message":"Internal error"}}`
 
-	req, err := http.NewRequest(http.MethodPost, ts.URL, bytes.NewBufferString(in))
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, ts.URL, bytes.NewBufferString(in))
 	if err != nil {
 		t.Errorf("create request failed: %v", err)
 	}
@@ -124,13 +140,13 @@ func TestMiddlewareErrorLogger(t *testing.T) {
 	c := http.Client{}
 	res, err := c.Do(req)
 	if err != nil {
-		log.Fatal(err)
+		t.Error(err)
 	}
 
-	resp, err := ioutil.ReadAll(res.Body)
-	res.Body.Close()
+	resp, err := io.ReadAll(res.Body)
+	_ = res.Body.Close()
 	if err != nil {
-		log.Fatal(err)
+		t.Error(err)
 	}
 
 	if string(resp) != out {
@@ -139,7 +155,7 @@ func TestMiddlewareErrorLogger(t *testing.T) {
 }
 
 func TestMiddlewareXRequestID(t *testing.T) {
-	rpc := newArithServer(true, nil, middleware.DefaultServerName)
+	rpc := newArithServer(true, nil, "xrequestid")
 
 	ts := httptest.NewServer(middleware.XRequestID(http.HandlerFunc(rpc.ServeHTTP)))
 	defer ts.Close()
@@ -148,11 +164,12 @@ func TestMiddlewareXRequestID(t *testing.T) {
 
 	res, err := http.Post(ts.URL, "application/json", bytes.NewBufferString(in))
 	if err != nil {
-		log.Fatal(err)
+		t.Error(err)
 	}
+	_ = res.Body.Close()
 
-	xRequestId := res.Header.Get(echo.HeaderXRequestID)
-	if xRequestId == "" {
+	xRequestID := res.Header.Get(echo.HeaderXRequestID)
+	if xRequestID == "" {
 		t.Error("Empty X-Request-ID header response")
 	}
 

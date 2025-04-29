@@ -12,7 +12,7 @@ func CORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Authorization2, Origin, X-Requested-With, Content-Type, Accept, Platform, Version, X-Request-ID")
-		if r.Method == "OPTIONS" {
+		if r.Method == http.MethodOptions {
 			return
 		}
 
@@ -23,12 +23,12 @@ func CORS(next http.Handler) http.Handler {
 // XRequestID add X-Request-ID header if not exists.
 func XRequestID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requestId := r.Header.Get(echo.HeaderXRequestID)
-		if !isValidXRequestID(requestId) {
-			requestId = generateXRequestID()
-			r.Header.Add(echo.HeaderXRequestID, requestId)
+		requestID := r.Header.Get(echo.HeaderXRequestID)
+		if !isValidXRequestID(requestID) {
+			requestID = generateXRequestID()
+			r.Header.Add(echo.HeaderXRequestID, requestID)
 		}
-		w.Header().Set(echo.HeaderXRequestID, requestId)
+		w.Header().Set(echo.HeaderXRequestID, requestID)
 
 		next.ServeHTTP(w, r)
 	})
@@ -38,7 +38,7 @@ func XRequestID(next http.Handler) http.Handler {
 func EchoHandler(next http.Handler) echo.HandlerFunc {
 	return func(ctx echo.Context) error {
 		ctx = applySentryHubToContext(ctx)
-		ctx = applyIpToContext(ctx)
+		ctx = applyIPToContext(ctx)
 		req := ctx.Request()
 		CORS(XRequestID(next)).ServeHTTP(ctx.Response(), req)
 		return nil
@@ -58,7 +58,7 @@ func EchoSentryHubContext() echo.MiddlewareFunc {
 func EchoIPContext() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			return next(applyIpToContext(c))
+			return next(applyIPToContext(c))
 		}
 	}
 }
@@ -71,7 +71,7 @@ func applySentryHubToContext(c echo.Context) echo.Context {
 	return c
 }
 
-func applyIpToContext(c echo.Context) echo.Context {
+func applyIPToContext(c echo.Context) echo.Context {
 	req := c.Request()
 	c.SetRequest(req.WithContext(NewIPContext(req.Context(), c.RealIP())))
 	return c
