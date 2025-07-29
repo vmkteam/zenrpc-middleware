@@ -10,7 +10,7 @@ import (
 	"github.com/vmkteam/zenrpc/v2"
 )
 
-const methodNotFound = "unknown.method"
+const methodNotFound = "methodNotFound"
 
 // WithMetrics logs duration of RPC requests via Prometheus. Default AppName is zenrpc. It exposes two
 // metrics: `appName_rpc_error_requests_count` and `appName_rpc_responses_duration_seconds`. Labels: method, code,
