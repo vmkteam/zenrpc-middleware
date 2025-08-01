@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -28,27 +29,45 @@ func sentryHubFromContext(ctx context.Context) (*sentry.Hub, bool) {
 }
 
 // WithSentry sets additional parameters for current Sentry scope. Extras: params, duration, ip. Tags: platform,
-// version, method.
+// version, method. It's also handles panic.
 func WithSentry(serverName string) zenrpc.MiddlewareFunc {
 	return func(h zenrpc.InvokeFunc) zenrpc.InvokeFunc {
 		return func(ctx context.Context, method string, params json.RawMessage) zenrpc.Response {
-			if hub, ok := sentryHubFromContext(ctx); ok {
-				start, platform, version, ip, xRequestID := time.Now(), PlatformFromContext(ctx), VersionFromContext(ctx), IPFromContext(ctx), XRequestIDFromContext(ctx)
+			defer func() {
+				var err error
+				var rec any
+				if rec = recover(); rec != nil {
+					switch e := rec.(type) {
+					case error:
+						err = e
+					default:
+						err = fmt.Errorf("%v", e)
+					}
+				}
 
-				methodName := fullMethodName(serverName, zenrpc.NamespaceFromContext(ctx), method)
+				if hub, ok := sentryHubFromContext(ctx); ok {
+					start, platform, version, ip, xRequestID := time.Now(), PlatformFromContext(ctx), VersionFromContext(ctx), IPFromContext(ctx), XRequestIDFromContext(ctx)
 
-				hub.Scope().SetExtras(map[string]interface{}{
-					"params":   params,
-					"duration": time.Since(start).String(),
-					"ip":       ip,
-				})
-				hub.Scope().SetTags(map[string]string{
-					"platform":   platform,
-					"version":    version,
-					"method":     methodName,
-					"xRequestId": xRequestID,
-				})
-			}
+					methodName := fullMethodName(serverName, zenrpc.NamespaceFromContext(ctx), method)
+
+					hub.Scope().SetExtras(map[string]interface{}{
+						"params":   params,
+						"duration": time.Since(start).String(),
+						"ip":       ip,
+					})
+
+					hub.Scope().SetTags(map[string]string{
+						"platform":   platform,
+						"version":    version,
+						"method":     methodName,
+						"xRequestId": xRequestID,
+					})
+
+					if err != nil {
+						hub.CaptureException(err)
+					}
+				}
+			}()
 
 			return h(ctx, method, params)
 		}
