@@ -57,7 +57,8 @@ func WithSLog(pf Print, serverName string, fn LogAttrs) zenrpc.MiddlewareFunc {
 
 			logArgs := append(additionalArgs(ctx), []any{
 				"method", fullMethodName(serverName, zenrpc.NamespaceFromContext(ctx), method),
-				"duration", time.Since(start),
+				"duration", time.Since(start).String(),
+				"durationMS", time.Since(start).Milliseconds(),
 				"params", params,
 				"err", r.Error,
 				"userAgent", UserAgentFromContext(ctx),
