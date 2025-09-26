@@ -3,9 +3,9 @@ on:
   push:
     tags:
       - v*
-    branches:
-      - master
+    branches: [ master ]
   pull_request:
+    branches: [ master ]
 
 permissions:
   contents: read
