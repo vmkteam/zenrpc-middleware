@@ -12,22 +12,6 @@ import (
 	"github.com/vmkteam/zenrpc/v2"
 )
 
-const ctxSentryHubKey contextKey = "sentryHub"
-
-// NewSentryHubContext creates new context with Sentry Hub.
-func NewSentryHubContext(ctx context.Context, sentryHub *sentry.Hub) context.Context {
-	if sentryHub == nil {
-		return ctx
-	}
-	return context.WithValue(ctx, ctxSentryHubKey, sentryHub)
-}
-
-// sentryHubFromContext returns Sentry Hub from context.
-func sentryHubFromContext(ctx context.Context) (*sentry.Hub, bool) {
-	r, ok := ctx.Value(ctxSentryHubKey).(*sentry.Hub)
-	return r, ok
-}
-
 // WithSentry sets additional parameters for current Sentry scope. Extras: params, duration, ip. Tags: platform,
 // version, method. It's also handles panic.
 func WithSentry(serverName string) zenrpc.MiddlewareFunc {
@@ -45,7 +29,7 @@ func WithSentry(serverName string) zenrpc.MiddlewareFunc {
 					}
 				}
 
-				if hub, ok := sentryHubFromContext(ctx); ok {
+				if hub := sentry.GetHubFromContext(ctx); hub != nil {
 					start, platform, version, ip, xRequestID := time.Now(), PlatformFromContext(ctx), VersionFromContext(ctx), IPFromContext(ctx), XRequestIDFromContext(ctx)
 
 					methodName := fullMethodName(serverName, zenrpc.NamespaceFromContext(ctx), method)
@@ -89,22 +73,29 @@ func WithErrorLogger(pf Printf, serverName string) zenrpc.MiddlewareFunc {
 
 				pf("ip=%s platform=%q version=%q method=%s duration=%v params=%s xRequestId=%q err=%q", ip, platform, version, methodName, duration, params, xRequestID, r.Error)
 
-				sentry.WithScope(func(scope *sentry.Scope) {
-					scope.SetExtras(map[string]interface{}{
-						"params":     params,
-						"duration":   duration.String(),
-						"ip":         ip,
-						"error.data": r.Error.Data,
-						"error.code": r.Error.Code,
-					})
-					scope.SetTags(map[string]string{
-						"platform":   platform,
-						"version":    version,
-						"method":     methodName,
-						"xRequestId": xRequestID,
-					})
-					sentry.CaptureException(r.Error)
+				// initialize hub and scope
+				currentHub, scope := sentry.CurrentHub(), &sentry.Scope{}
+
+				// set hub and scope from context, if present
+				if hub := sentry.GetHubFromContext(ctx); hub != nil {
+					scope = hub.Scope()
+					currentHub = hub
+				}
+
+				scope.SetExtras(map[string]interface{}{
+					"params":     params,
+					"duration":   duration.String(),
+					"ip":         ip,
+					"error.data": r.Error.Data,
+					"error.code": r.Error.Code,
 				})
+				scope.SetTags(map[string]string{
+					"platform":   platform,
+					"version":    version,
+					"method":     methodName,
+					"xRequestId": xRequestID,
+				})
+				currentHub.CaptureException(r.Error)
 
 				// remove sensitive error data from response
 				r.Error.Err = nil
@@ -154,22 +145,29 @@ func WithErrorSLog(pf Print, serverName string, fn LogAttrs) zenrpc.MiddlewareFu
 
 				pf(ctx, "rpc error", append(logArgs, args...)...)
 
-				sentry.WithScope(func(scope *sentry.Scope) {
-					scope.SetExtras(map[string]interface{}{
-						"params":     params,
-						"duration":   duration.String(),
-						"ip":         ip,
-						"error.data": r.Error.Data,
-						"error.code": r.Error.Code,
-					})
-					scope.SetTags(map[string]string{
-						"platform":   platform,
-						"version":    version,
-						"method":     methodName,
-						"xRequestId": xRequestID,
-					})
-					sentry.CaptureException(r.Error)
+				// initialize hub and scope
+				currentHub, scope := sentry.CurrentHub(), &sentry.Scope{}
+
+				// set hub and scope from context, if present
+				if hub := sentry.GetHubFromContext(ctx); hub != nil {
+					scope = hub.Scope()
+					currentHub = hub
+				}
+
+				scope.SetExtras(map[string]interface{}{
+					"params":     params,
+					"duration":   duration.String(),
+					"ip":         ip,
+					"error.data": r.Error.Data,
+					"error.code": r.Error.Code,
 				})
+				scope.SetTags(map[string]string{
+					"platform":   platform,
+					"version":    version,
+					"method":     methodName,
+					"xRequestId": xRequestID,
+				})
+				currentHub.CaptureException(r.Error)
 
 				// remove sensitive error data from response
 				r.Error.Err = nil
