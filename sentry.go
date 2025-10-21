@@ -9,23 +9,14 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
+	"github.com/vmkteam/appkit"
 	"github.com/vmkteam/zenrpc/v2"
 )
 
-const ctxSentryHubKey contextKey = "sentryHub"
-
 // NewSentryHubContext creates new context with Sentry Hub.
+// Deprecated: use appkit.NewSentryHubContext.
 func NewSentryHubContext(ctx context.Context, sentryHub *sentry.Hub) context.Context {
-	if sentryHub == nil {
-		return ctx
-	}
-	return context.WithValue(ctx, ctxSentryHubKey, sentryHub)
-}
-
-// sentryHubFromContext returns Sentry Hub from context.
-func sentryHubFromContext(ctx context.Context) (*sentry.Hub, bool) {
-	r, ok := ctx.Value(ctxSentryHubKey).(*sentry.Hub)
-	return r, ok
+	return appkit.NewSentryHubContext(ctx, sentryHub)
 }
 
 // WithSentry sets additional parameters for current Sentry scope. Extras: params, duration, ip. Tags: platform,
@@ -45,8 +36,8 @@ func WithSentry(serverName string) zenrpc.MiddlewareFunc {
 					}
 				}
 
-				if hub, ok := sentryHubFromContext(ctx); ok {
-					start, platform, version, ip, xRequestID := time.Now(), PlatformFromContext(ctx), VersionFromContext(ctx), IPFromContext(ctx), XRequestIDFromContext(ctx)
+				if hub, ok := appkit.SentryHubFromContext(ctx); ok {
+					start, platform, version, ip, xRequestID := time.Now(), appkit.PlatformFromContext(ctx), appkit.VersionFromContext(ctx), appkit.IPFromContext(ctx), appkit.XRequestIDFromContext(ctx)
 
 					methodName := fullMethodName(serverName, zenrpc.NamespaceFromContext(ctx), method)
 
@@ -79,7 +70,7 @@ func WithSentry(serverName string) zenrpc.MiddlewareFunc {
 func WithErrorLogger(pf Printf, serverName string) zenrpc.MiddlewareFunc {
 	return func(h zenrpc.InvokeFunc) zenrpc.InvokeFunc {
 		return func(ctx context.Context, method string, params json.RawMessage) zenrpc.Response {
-			start, platform, version, ip, xRequestID := time.Now(), PlatformFromContext(ctx), VersionFromContext(ctx), IPFromContext(ctx), XRequestIDFromContext(ctx)
+			start, platform, version, ip, xRequestID := time.Now(), appkit.PlatformFromContext(ctx), appkit.VersionFromContext(ctx), appkit.IPFromContext(ctx), appkit.XRequestIDFromContext(ctx)
 			namespace := zenrpc.NamespaceFromContext(ctx)
 
 			r := h(ctx, method, params)
@@ -135,7 +126,7 @@ func WithErrorSLog(pf Print, serverName string, fn LogAttrs) zenrpc.MiddlewareFu
 			}
 
 			if r.Error != nil && (r.Error.Code == http.StatusInternalServerError || r.Error.Code < 0) {
-				start, platform, version, ip, xRequestID := time.Now(), PlatformFromContext(ctx), VersionFromContext(ctx), IPFromContext(ctx), XRequestIDFromContext(ctx)
+				start, platform, version, ip, xRequestID := time.Now(), appkit.PlatformFromContext(ctx), appkit.VersionFromContext(ctx), appkit.IPFromContext(ctx), appkit.XRequestIDFromContext(ctx)
 				namespace := zenrpc.NamespaceFromContext(ctx)
 
 				duration := time.Since(start)
@@ -148,8 +139,8 @@ func WithErrorSLog(pf Print, serverName string, fn LogAttrs) zenrpc.MiddlewareFu
 					"durationMS", t.Milliseconds(),
 					"params", params,
 					"err", r.Error,
-					"userAgent", UserAgentFromContext(ctx),
-					"xRequestId", XRequestIDFromContext(ctx),
+					"userAgent", appkit.UserAgentFromContext(ctx),
+					"xRequestId", appkit.XRequestIDFromContext(ctx),
 				}...)
 
 				pf(ctx, "rpc error", append(logArgs, args...)...)
