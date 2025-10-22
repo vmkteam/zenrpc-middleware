@@ -17,11 +17,12 @@ import (
 
 	"github.com/go-pg/pg/v10"
 	"github.com/labstack/echo/v4"
+	"github.com/vmkteam/appkit"
 	"github.com/vmkteam/zenrpc/v2"
 	"github.com/vmkteam/zenrpc/v2/testdata"
 )
 
-func newArithServer(isDevel bool, dbc *pg.DB, appName string) zenrpc.Server {
+func newArithServer(isDevel bool, dbc *pg.DB, appName string) *zenrpc.Server {
 	elog := log.New(os.Stderr, "E", log.LstdFlags|log.Lshortfile)
 	dlog := log.New(os.Stdout, "D", log.LstdFlags|log.Lshortfile)
 	sl := slog.New(slog.NewTextHandler(os.Stdout, nil))
@@ -38,7 +39,7 @@ func newArithServer(isDevel bool, dbc *pg.DB, appName string) zenrpc.Server {
 	})
 
 	fnLogAttr := func(ctx context.Context, r zenrpc.Response) []any {
-		namespace, method := zenrpc.NamespaceFromContext(ctx), middleware.MethodFromContext(ctx)
+		namespace, method := zenrpc.NamespaceFromContext(ctx), appkit.MethodFromContext(ctx)
 		if namespace == "arith" && method == "divide" {
 			return []any{middleware.ErrSkipLog}
 		}
@@ -157,7 +158,7 @@ func TestMiddlewareErrorLogger(t *testing.T) {
 func TestMiddlewareXRequestID(t *testing.T) {
 	rpc := newArithServer(true, nil, "xrequestid")
 
-	ts := httptest.NewServer(middleware.XRequestID(http.HandlerFunc(rpc.ServeHTTP)))
+	ts := httptest.NewServer(appkit.XRequestID(http.HandlerFunc(rpc.ServeHTTP)))
 	defer ts.Close()
 
 	in := `{"jsonrpc": "2.0", "method": "arith.divide", "params": { "a": 1, "b": 24 }, "id": 1 }`
