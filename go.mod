@@ -7,7 +7,7 @@ require (
 	github.com/go-pg/pg/v10 v10.15.0
 	github.com/labstack/echo/v4 v4.13.4
 	github.com/prometheus/client_golang v1.23.2
-	github.com/vmkteam/appkit v0.1.0
+	github.com/vmkteam/appkit v0.1.1
 	github.com/vmkteam/zenrpc/v2 v2.3.0
 )
 
