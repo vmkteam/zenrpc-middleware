@@ -17,7 +17,7 @@ import (
 // version, method. It's also handles panic.
 func WithSentry(serverName string) zenrpc.MiddlewareFunc {
 	return func(h zenrpc.InvokeFunc) zenrpc.InvokeFunc {
-		return func(ctx context.Context, method string, params json.RawMessage) zenrpc.Response {
+		return func(ctx context.Context, method string, params json.RawMessage) (response zenrpc.Response) {
 			defer func() {
 				var err error
 				var rec any
@@ -28,6 +28,8 @@ func WithSentry(serverName string) zenrpc.MiddlewareFunc {
 					default:
 						err = fmt.Errorf("%v", e)
 					}
+
+					response = zenrpc.NewResponseError(nil, zenrpc.InternalError, "", nil)
 				}
 
 				if hub := sentry.GetHubFromContext(ctx); hub != nil {
