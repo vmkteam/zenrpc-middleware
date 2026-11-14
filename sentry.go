@@ -13,11 +13,17 @@ import (
 	"github.com/vmkteam/zenrpc/v2"
 )
 
-// WithSentry sets additional parameters for current Sentry scope. Extras: params, duration, ip. Tags: platform,
+// sentryContext is the context the call's details travel under on a Sentry
+// event. Not extras: sentry-go deprecated them in v0.44 and removed them in
+// v0.46. Not attributes either, their replacement: those reach logs and metrics
+// only, never an error event.
+const sentryContext = "rpc"
+
+// WithSentry sets additional parameters for current Sentry scope. Context "rpc": params, duration, ip. Tags: platform,
 // version, method. It's also handles panic.
 func WithSentry(serverName string) zenrpc.MiddlewareFunc {
 	return func(h zenrpc.InvokeFunc) zenrpc.InvokeFunc {
-		return func(ctx context.Context, method string, params json.RawMessage) (response zenrpc.Response) {
+		return func(ctx context.Context, method string, params json.RawMessage) (response zenrpc.Response) { //nolint:nonamedreturns // the deferred recover answers a panic through it
 			defer func() {
 				var err error
 				var rec any
@@ -37,7 +43,7 @@ func WithSentry(serverName string) zenrpc.MiddlewareFunc {
 
 					methodName := fullMethodName(serverName, zenrpc.NamespaceFromContext(ctx), method)
 
-					hub.Scope().SetExtras(map[string]interface{}{
+					hub.Scope().SetContext(sentryContext, sentry.Context{
 						"params":   params,
 						"duration": time.Since(start).String(),
 						"ip":       ip,
@@ -76,29 +82,18 @@ func WithErrorLogger(pf Printf, serverName string) zenrpc.MiddlewareFunc {
 
 				pf("ip=%s platform=%q version=%q method=%s duration=%v params=%s xRequestId=%q err=%q", ip, platform, version, methodName, duration, params, xRequestID, r.Error)
 
-				// initialize hub and scope
-				currentHub, scope := sentry.CurrentHub(), sentry.NewScope()
-
-				// set hub and scope from context, if present
-				if hub := sentry.GetHubFromContext(ctx); hub != nil {
-					scope = hub.Scope()
-					currentHub = hub
-				}
-
-				scope.SetExtras(map[string]interface{}{
+				captureRPCError(ctx, r.Error, sentry.Context{
 					"params":     params,
 					"duration":   duration.String(),
 					"ip":         ip,
 					"error.data": r.Error.Data,
 					"error.code": r.Error.Code,
-				})
-				scope.SetTags(map[string]string{
+				}, map[string]string{
 					"platform":   platform,
 					"version":    version,
 					"method":     methodName,
 					"xRequestId": xRequestID,
 				})
-				currentHub.CaptureException(r.Error)
 
 				// remove sensitive error data from response
 				r.Error.Err = nil
@@ -148,29 +143,18 @@ func WithErrorSLog(pf Print, serverName string, fn LogAttrs) zenrpc.MiddlewareFu
 
 				pf(ctx, "rpc error", append(logArgs, args...)...)
 
-				// initialize hub and scope
-				currentHub, scope := sentry.CurrentHub(), sentry.NewScope()
-
-				// set hub and scope from context, if present
-				if hub := sentry.GetHubFromContext(ctx); hub != nil {
-					scope = hub.Scope()
-					currentHub = hub
-				}
-
-				scope.SetExtras(map[string]interface{}{
+				captureRPCError(ctx, r.Error, sentry.Context{
 					"params":     params,
 					"duration":   duration.String(),
 					"ip":         ip,
 					"error.data": r.Error.Data,
 					"error.code": r.Error.Code,
-				})
-				scope.SetTags(map[string]string{
+				}, map[string]string{
 					"platform":   platform,
 					"version":    version,
 					"method":     methodName,
 					"xRequestId": xRequestID,
 				})
-				currentHub.CaptureException(r.Error)
 
 				// remove sensitive error data from response
 				r.Error.Err = nil
@@ -180,4 +164,21 @@ func WithErrorSLog(pf Print, serverName string, fn LogAttrs) zenrpc.MiddlewareFu
 			return r
 		}
 	}
+}
+
+// captureRPCError reports an RPC error to Sentry with the call's details: to the
+// request's hub when the context carries one, to the current hub otherwise. The
+// details go into a scope of their own, the one the event is captured with. A
+// fresh scope beside the current hub used to be filled and never captured with,
+// so without a hub in the context the event went out bare.
+func captureRPCError(ctx context.Context, rpcErr *zenrpc.Error, details sentry.Context, tags map[string]string) {
+	hub := sentry.GetHubFromContext(ctx)
+	if hub == nil {
+		hub = sentry.CurrentHub()
+	}
+	hub.WithScope(func(scope *sentry.Scope) {
+		scope.SetContext(sentryContext, details)
+		scope.SetTags(tags)
+		hub.CaptureException(rpcErr)
+	})
 }

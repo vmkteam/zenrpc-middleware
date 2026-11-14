@@ -31,8 +31,12 @@ Logs via slog.InfoContext (or similar) function all requests with custom attrs s
 
 ### WithSentry
 
-Sets additional parameters for current Sentry scope. Extras: params, duration, ip. Tags: platform,
+Sets additional parameters for current Sentry scope. Context "rpc": params, duration, ip. Tags: platform,
 version, method.
+
+Recovers a panic in a handler, reports it to Sentry and answers with JSON-RPC error `-32603` (Internal error). Put
+`WithErrorLogger` and `WithErrorSLog` after `WithSentry` in `rpc.Use`, as in the example below: placed before it, they
+see that error too and report the same panic to Sentry a second time.
 
 ### WithNoCancelContext
 
