@@ -22,24 +22,28 @@ const (
 type AllowDebugFunc func(*http.Request) bool
 
 // DebugIDFromContext returns debug id from context.
+//
 // Deprecated: use appkit.DebugIDFromContext.
 func DebugIDFromContext(ctx context.Context) uint64 {
 	return appkit.DebugIDFromContext(ctx)
 }
 
 // NewDebugIDContext creates new context with debug ID.
+//
 // Deprecated: use appkit.NewDebugIDContext.
 func NewDebugIDContext(ctx context.Context, debugID uint64) context.Context {
 	return appkit.NewDebugIDContext(ctx, debugID)
 }
 
 // NewSQLGroupContext creates new context with SQL Group for debug SQL logging.
+//
 // Deprecated: use appkit.NewSQLGroupContext.
 func NewSQLGroupContext(ctx context.Context, group string) context.Context {
 	return appkit.NewSQLGroupContext(ctx, group)
 }
 
 // SQLGroupFromContext returns sql group from context.
+//
 // Deprecated: use appkit.SQLGroupFromContext.
 func SQLGroupFromContext(ctx context.Context) string {
 	return appkit.SQLGroupFromContext(ctx)
