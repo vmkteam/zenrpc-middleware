@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/labstack/echo/v4"
 	"github.com/vmkteam/appkit"
 	"github.com/vmkteam/zenrpc/v2"
 )
@@ -47,7 +46,7 @@ func WithHeaders() zenrpc.MiddlewareFunc {
 				ctx = appkit.NewUserAgentContext(ctx, req.UserAgent())
 				ctx = appkit.NewPlatformContext(ctx, req.Header.Get("Platform"))
 				ctx = appkit.NewVersionContext(ctx, req.Header.Get("Version"))
-				ctx = appkit.NewXRequestIDContext(ctx, req.Header.Get(echo.HeaderXRequestID))
+				ctx = appkit.NewXRequestIDContext(ctx, req.Header.Get(headerXRequestID))
 				ctx = appkit.NewCountryContext(ctx, req.Header.Get("X-Country"))
 				ctx = appkit.NewMethodContext(ctx, method)
 			}
@@ -57,96 +56,112 @@ func WithHeaders() zenrpc.MiddlewareFunc {
 }
 
 // NewIPContext creates new context with IP.
+//
 // Deprecated: use appkit.NewIPContext.
 func NewIPContext(ctx context.Context, ip string) context.Context {
 	return appkit.NewIPContext(ctx, ip)
 }
 
 // IPFromContext returns IP from context.
+//
 // Deprecated: use appkit.IPFromContext.
 func IPFromContext(ctx context.Context) string {
 	return appkit.IPFromContext(ctx)
 }
 
 // NewUserAgentContext creates new context with User-Agent.
+//
 // Deprecated: use appkit.NewUserAgentContext.
 func NewUserAgentContext(ctx context.Context, ua string) context.Context {
 	return appkit.NewUserAgentContext(ctx, ua)
 }
 
 // UserAgentFromContext returns userAgent from context.
+//
 // Deprecated: use appkit.UserAgentFromContext.
 func UserAgentFromContext(ctx context.Context) string {
 	return appkit.UserAgentFromContext(ctx)
 }
 
 // NewNotificationContext creates new context with JSONRPC2 notification flag.
+//
 // Deprecated: use appkit.NewNotificationContext.
 func NewNotificationContext(ctx context.Context) context.Context {
 	return appkit.NewNotificationContext(ctx)
 }
 
 // NotificationFromContext returns JSONRPC2 notification flag from context.
+//
 // Deprecated: use appkit.NotificationFromContext.
 func NotificationFromContext(ctx context.Context) bool {
 	return appkit.NotificationFromContext(ctx)
 }
 
 // NewIsDevelContext creates new context with isDevel flag.
+//
 // Deprecated: use appkit.NewIsDevelContext.
 func NewIsDevelContext(ctx context.Context, isDevel bool) context.Context {
 	return appkit.NewIsDevelContext(ctx, isDevel)
 }
 
 // IsDevelFromContext returns isDevel flag from context.
+//
 // Deprecated: use appkit.IsDevelFromContext.
 func IsDevelFromContext(ctx context.Context) bool {
 	return appkit.IsDevelFromContext(ctx)
 }
 
 // NewPlatformContext creates new context with platform.
+//
 // Deprecated: use appkit.NewPlatformContext.
 func NewPlatformContext(ctx context.Context, platform string) context.Context {
 	return appkit.NewPlatformContext(ctx, platform)
 }
 
 // PlatformFromContext returns platform from context.
+//
 // Deprecated: use appkit.PlatformFromContext.
 func PlatformFromContext(ctx context.Context) string {
 	return appkit.PlatformFromContext(ctx)
 }
 
 // NewVersionContext creates new context with version.
+//
 // Deprecated: use appkit.NewVersionContext.
 func NewVersionContext(ctx context.Context, version string) context.Context {
 	return appkit.NewVersionContext(ctx, version)
 }
 
 // VersionFromContext returns version from context.
+//
 // Deprecated: use appkit.VersionFromContext.
 func VersionFromContext(ctx context.Context) string {
 	return appkit.VersionFromContext(ctx)
 }
 
 // NewCountryContext creates new context with country.
+//
 // Deprecated: use appkit.NewCountryContext.
 func NewCountryContext(ctx context.Context, country string) context.Context {
 	return appkit.NewCountryContext(ctx, country)
 }
 
 // CountryFromContext returns country from context.
+//
 // Deprecated: use appkit.CountryFromContext.
 func CountryFromContext(ctx context.Context) string {
 	return appkit.CountryFromContext(ctx)
 }
 
 // NewMethodContext creates new context with Method.
+//
 // Deprecated: use appkit.NewMethodContext.
 func NewMethodContext(ctx context.Context, method string) context.Context {
 	return appkit.NewMethodContext(ctx, method)
 }
 
 // MethodFromContext returns Method from context.
+//
 // Deprecated: use appkit.MethodFromContext.
 func MethodFromContext(ctx context.Context) string {
 	return appkit.MethodFromContext(ctx)

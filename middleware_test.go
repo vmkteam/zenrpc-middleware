@@ -19,7 +19,6 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	"github.com/go-pg/pg/v10"
-	"github.com/labstack/echo/v4"
 	"github.com/vmkteam/appkit"
 	"github.com/vmkteam/zenrpc/v2"
 	"github.com/vmkteam/zenrpc/v2/smd"
@@ -173,7 +172,7 @@ func TestMiddlewareXRequestID(t *testing.T) {
 	}
 	_ = res.Body.Close()
 
-	xRequestID := res.Header.Get(echo.HeaderXRequestID)
+	xRequestID := res.Header.Get("X-Request-ID")
 	if xRequestID == "" {
 		t.Error("Empty X-Request-ID header response")
 	}
