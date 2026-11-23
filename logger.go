@@ -39,6 +39,8 @@ func WithAPILogger(pf Printf, serverName string) zenrpc.MiddlewareFunc {
 }
 
 // WithSLog logs via slog function (e.g. slog.InfoContext) all requests.
+//
+//nolint:goconst // names of log attributes
 func WithSLog(pf Print, serverName string, fn LogAttrs) zenrpc.MiddlewareFunc {
 	return func(h zenrpc.InvokeFunc) zenrpc.InvokeFunc {
 		return func(ctx context.Context, method string, params json.RawMessage) zenrpc.Response {

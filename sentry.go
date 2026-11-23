@@ -21,6 +21,8 @@ const sentryContext = "rpc"
 
 // WithSentry sets additional parameters for current Sentry scope. Context "rpc": params, duration, ip. Tags: platform,
 // version, method. It's also handles panic.
+//
+//nolint:goconst // names of Sentry context fields and tags
 func WithSentry(serverName string) zenrpc.MiddlewareFunc {
 	return func(h zenrpc.InvokeFunc) zenrpc.InvokeFunc {
 		return func(ctx context.Context, method string, params json.RawMessage) (response zenrpc.Response) { //nolint:nonamedreturns // the deferred recover answers a panic through it

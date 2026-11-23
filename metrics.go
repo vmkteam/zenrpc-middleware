@@ -14,7 +14,7 @@ import (
 
 const methodNotFound = "methodNotFound"
 
-//nolint:gochecknoglobals // need for once metrics registration
+//nolint:gochecknoglobals,goconst // need for once metrics registration; names of metrics and labels
 var (
 	registerMetricsOnce sync.Once
 

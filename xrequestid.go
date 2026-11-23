@@ -6,7 +6,7 @@ import (
 	"github.com/vmkteam/appkit"
 )
 
-const headerXRequestID = "X-Request-Id"
+const headerXRequestID = "X-Request-ID"
 
 // XRequestIDFromContext returns X-Request-ID from context.
 //

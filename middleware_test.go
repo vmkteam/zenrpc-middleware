@@ -172,7 +172,7 @@ func TestMiddlewareXRequestID(t *testing.T) {
 	}
 	_ = res.Body.Close()
 
-	xRequestID := res.Header.Get("X-Request-Id")
+	xRequestID := res.Header.Get("X-Request-ID")
 	if xRequestID == "" {
 		t.Error("Empty X-Request-ID header response")
 	}
